@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词背诵App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .word-card-area {
+            min-height: 60vh;
+        }
+        .animate-fade {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans">
+    <div id="app" class="max-w-md mx-auto px-5 py-8">
+        <!-- 首页 -->
+        <div id="page-home" class="page">
+            <h1 class="text-[28px] font-bold text-center text-slate-800 mb-12">单词背诵本</h1>
+            <div class="flex flex-col gap-6">
+                <button onclick="goStudyList()" class="w-full py-5 rounded-xl bg-blue-600 text-white text-xl font-medium shadow-lg shadow-blue-200">
+                    开始学习
+                </button>
+                <button onclick="goReview()" class="w-full py-5 rounded-xl bg-amber-500 text-white text-xl font-medium shadow-lg shadow-amber-200 relative">
+                    复习没记住
+                    <span id="review-badge" class="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full text-sm flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 学习卡片选择页 -->
+        <div id="page-study-list" class="page hidden">
+            <div class="flex items-center mb-8">
+                <button onclick="backHome()" class="text-blue-600 text-lg">← 返回</button>
+                <h2 class="text-xl font-bold flex-1 text-center">选择单词卡组</h2>
+            </div>
+            <div id="group-card-container" class="grid grid-cols-1 gap-4">
+                <!-- 卡组卡片会自动渲染在这里，新增卡组无需修改页面代码 -->
+            </div>
+        </div>
+
+        <!-- 单词学习/复习页面 -->
+        <div id="page-word" class="page hidden">
+            <div class="flex items-center mb-6">
+                <button onclick="backStudyList()" class="text-blue-600 text-lg">← 返回卡组</button>
+                <h2 id="group-title" class="text-lg font-bold flex-1 text-center"></h2>
+                <span id="word-index" class="text-slate-500">0/0</span>
+            </div>
+            <!-- 单词卡片区域 -->
+            <div id="word-card-area" onclick="clickCard()" class="word-card-area bg-white rounded-2xl shadow-md p-8 flex flex-col items-center justify-center cursor-pointer relative overflow-hidden">
+                <div id="word-display" class="text-[42px] font-bold text-slate-800 animate-fade"></div>
+                <div id="sentence-display" class="mt-6 text-slate-600 text-base text-center hidden animate-fade whitespace-pre-line"></div>
+                <div id="mean-display" class="mt-4 text-slate-700 text-center hidden animate-fade whitespace-pre-line"></div>
+            </div>
+            <!-- 记忆按钮 -->
+            <div id="btn-group" class="mt-8 flex gap-4 hidden">
+                <button onclick="markKnow()" class="flex-1 py-4 rounded-xl bg-emerald-500 text-white text-lg font-medium">会</button>
+                <button onclick="markNotKnow()" class="flex-1 py-4 rounded-xl bg-red-500 text-white text-lg font-medium">没记住</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ===================== 【核心配置区：新增卡组只需要在这里添加】=====================
+// 格式说明：每个卡组是一个对象，包含 name(卡组名称)、words(单词数组)
+const wordGroups = [
+    {
+        name: "Finland",
+        words: [
+            {
+                word: "consider doing",
+                meanInText: "考虑做某事",
+                sentence: "For your next vacation, consider going to Finland.",
+                sentenceCn: "下次度假，你可以考虑去芬兰。",
+                fullInfo: "短语；考虑做某事 | 搭配：consider doing sth；例句：I consider reading books every night."
+            },
+            {
+                word: "consider",
+                meanInText: "考虑；认为",
+                sentence: "People consider Finland the best country to live in.",
+                sentenceCn: "人们认为芬兰是最适合居住的国家。",
+                fullInfo: "v. 考虑；认为 | 搭配：consider sth / consider doing / consider sb + adj；例句：She considers him a good writer."
+            },
+            {
+                word: "stillness",
+                meanInText: "寂静，宁静",
+                sentence: "sit by a quiet shoreline and listen to the silence and stillness",
+                sentenceCn: "坐在安静的湖畔，聆听这份静谧",
+                fullInfo: "n. 宁静；静止 | 搭配: the stillness of the lake；例句：The stillness of the forest calmed me down."
+            },
+            {
+                word: "still",
+                meanInText: "静止的；仍然",
+                sentence: "paddle through still waters",
+                sentenceCn: "划行在平静无波的水面上",
+                fullInfo: "adj. 平静的 / adv. 仍然 | 搭配：still water；stand still；例句：The lake is still at dawn."
+            },
+            {
+                word: "paddle",
+                meanInText: "划桨；泛舟",
+                sentence: "Whether you paddle through still waters or watch the reflection of trees",
+                sentenceCn: "无论你泛舟于静水之上，还是观赏树木的倒影",
+                fullInfo: "v. 划桨；n. 船桨 | 搭配：paddle a boat；paddle through the lake；例句：We paddled across the lake at sunrise."
+            },
+            {
+                word: "rent",
+                meanInText: "租用，租赁",
+                sentence: "Many lakeside cottages are available for rent.",
+                sentenceCn: "许多湖畔小屋可供出租。",
+                fullInfo: "v./n. 租赁；租金 | 搭配：for rent；rent sth from sb；例句：I rent a small house near the park."
+            },
+            {
+                word: "available",
+                meanInText: "可获得的，可供使用的",
+                sentence: "Many lakeside cottages are available for rent.",
+                sentenceCn: "许多湖畔小屋可供出租。",
+                fullInfo: "adj. 可使用的；有空的 | 搭配：be available for sth；be available to do；例句：The room is available this weekend."
+            },
+            {
+                word: "cottage",
+                meanInText: "小屋，乡间别墅",
+                sentence: "Many lakeside cottages are available for rent.",
+                sentenceCn: "许多湖畔小屋可供出租。",
+                fullInfo: "n. 乡间小屋；湖畔小屋 | 搭配：lakeside cottage；country cottage；例句：We stayed in a wooden cottage by the lake."
+            },
+            {
+                word: "lakeside",
+                meanInText: "湖畔的，湖边",
+                sentence: "Many lakeside cottages are available for rent.",
+                sentenceCn: "许多湖畔小屋可供出租。",
+                fullInfo: "adj./n. 湖边（的） | 搭配：lakeside view；lakeside house；例句：We enjoyed a lakeside picnic at sunset."
+            },
+            {
+                word: "silence",
+                meanInText: "寂静，安静",
+                sentence: "sit by a quiet shoreline and listen to the silence",
+                sentenceCn: "坐在安静的湖畔，聆听寂静",
+                fullInfo: "n. 安静，寂静 | 搭配：in silence；break the silence；例句：The silence of the lake made me relaxed."
+            },
+            {
+                word: "shoreline",
+                meanInText: "湖岸线，海岸线",
+                sentence: "sit by a quiet shoreline and listen to the silence",
+                sentenceCn: "坐在安静的湖岸旁，聆听寂静",
+                fullInfo: "n. 岸线；湖滨线 | 搭配：quiet shoreline；lake shoreline；例句：We walked along the shoreline for an hour."
+            },
+            {
+                word: "kayak",
+                meanInText: "划皮划艇",
+                sentence: "In summer, visitors can kayak, fish, or simply sit by a quiet shoreline",
+                sentenceCn: "夏天，游客可以划皮划艇、垂钓，或是安静坐在湖岸旁",
+                fullInfo: "v. 划皮划艇 / n. 皮划艇 | 搭配：kayak on the lake；go kayaking；例句：I like to kayak alone on quiet lakes."
+            },
+            {
+                word: "be known as",
+                meanInText: "被称作，以…闻名",
+                sentence: "The country is known as the 'Land of a Thousand Lakes'",
+                sentenceCn: "这个国家被称作“千湖之国”",
+                fullInfo: "短语；作为…闻名 | 辨析：be known for 因…出名；例句：Hangzhou is known as a city of silk."
+            },
+            {
+                word: "Northern",
+                meanInText: "北部的，北方的",
+                sentence: "Santa Claus lives in their country's northern Lapland region.",
+                sentenceCn: "圣诞老人居住在该国北部的拉普兰地区。",
+                fullInfo: "adj. 北部的 | 搭配：northern region；northern area；例句：Northern Finland is covered with snow all winter."
+            },
+            {
+                word: "celebrate",
+                meanInText: "庆祝",
+                sentence: "That's when you can go skiing or take part in Christmas celebrations around the country.",
+                sentenceCn: "这时你可以滑雪，或是参与全国各处的圣诞庆祝活动。",
+                fullInfo: "v. 庆祝 | 搭配：celebrate festivals；celebrate with friends；例句：We celebrate New Year together every year."
+            },
+            {
+                word: "elk",
+                meanInText: "麋鹿，驼鹿",
+                sentence: "Some like to visit during the summer, when they can hike all day long and try to see some elk.",
+                sentenceCn: "有些人喜欢夏天来访，他们可以徒步一整天，尝试看见麋鹿。",
+                fullInfo: "n. 驼鹿，麋鹿 | 例句：We saw a big elk in the Finnish forest."
+            },
+            {
+                word: "hike",
+                meanInText: "远足，徒步",
+                sentence: "they can hike all day long and try to see some elk.",
+                sentenceCn: "他们可以徒步一整天，尝试看见麋鹿。",
+                fullInfo: "v./n. 徒步远足 | 搭配：go hiking；hike all day；例句：We plan to hike in the forest this weekend."
+            },
+            {
+                word: "natural",
+                meanInText: "自然的",
+                sentence: "Finland is famous for its natural beauty.",
+                sentenceCn: "芬兰以其自然美景闻名。",
+                fullInfo: "adj. 自然的；天然的 | 搭配：natural beauty；natural scenery；例句：The lake has wonderful natural views."
+            },
+            {
+                word: "outdoors",
+                meanInText: "户外，野外",
+                sentence: "Most people who travel to Finland head for the great outdoors.",
+                sentenceCn: "大多数前往芬兰旅行的人都会奔赴广阔野外。",
+                fullInfo: "n. 户外，野外 | 搭配：the great outdoors；play outdoors；例句：I love spending time in the outdoors."
+            },
+            {
+                word: "outdoor",
+                meanInText: "户外的",
+                sentence: "Finland's great outdoors offers peaceful lake escapes.",
+                sentenceCn: "芬兰广阔的野外提供静谧的湖畔休憩之地。",
+                fullInfo: "adj. 户外的 | 搭配：outdoor activities；outdoor scenery；例句：We joined many outdoor sports in Finland."
+            },
+            {
+                word: "head for",
+                meanInText: "前往，奔赴",
+                sentence: "Most people who travel to Finland head for the great outdoors.",
+                sentenceCn: "大多数前往芬兰旅行的人都会奔赴广阔野外。",
+                fullInfo: "短语；前往某地 | 例句：After breakfast, we headed for the lake."
+            },
+            {
+                word: "rated",
+                meanInText: "被评为，评定",
+                sentence: "Finland was rated the world's best country to live in.",
+                sentenceCn: "芬兰被评为全球最适合居住的国家。",
+                fullInfo: "v.（rate过去分词）评定；评级 | 搭配：be rated + 名次；例句：The hotel is rated five stars."
+            },
+            {
+                word: "manufacturer",
+                meanInText: "制造商，生产商",
+                sentence: "Nokia has become the world's largest manufacturer of these phones.",
+                sentenceCn: "诺基亚成为了全球最大的手机制造商。",
+                fullInfo: "n. 制造商 | 词根：manufacture v.制造；例句：This factory is a big phone manufacturer."
+            },
+            {
+                word: "market",
+                meanInText: "市场；市集",
+                sentence: "Nokia took almost forty percent of the world's cell phone market.",
+                sentenceCn: "诺基亚占据全球近四成手机市场。",
+                fullInfo: "n. 市场；市集 | 搭配：cell phone market；open-air market；例句：We bought berries at the local market."
+            },
+            {
+                word: "ownership",
+                meanInText: "拥有率，持有",
+                sentence: "It has the highest rate of cell phone ownership in the world.",
+                sentenceCn: "它拥有全球最高的手机持有率。",
+                fullInfo: "n. 拥有；持有率 | 搭配：phone ownership；home ownership；例句：The ownership of mobile phones is very high here."
+            },
+            {
+                word: "manufacture",
+                meanInText: "制造，生产",
+                sentence: "Nokia manufactures millions of cell phones every year.",
+                sentenceCn: "诺基亚每年生产数百万台手机。",
+                fullInfo: "v. 制造；生产 | 名词：manufacturer；例句：The company manufactures electronic products."
+            },
+            {
+                word: "company",
+                meanInText: "公司",
+                sentence: "you or someone you know has talked on a cell phone from a Finnish company, Nokia",
+                sentenceCn: "你或你身边的人都用过芬兰公司诺基亚生产的手机",
+                fullInfo: "n. 公司；陪伴 | 搭配：Finnish company；tech company；例句：He works for a technology company."
+            },
+            {
+                word: "cell phone",
+                meanInText: "手机",
+                sentence: "It has the highest rate of cell phone ownership in the world.",
+                sentenceCn: "它拥有全球最高的手机持有率。",
+                fullInfo: "短语；手机（美式）= mobile phone；例句：My cell phone was made in Finland."
+            },
+            {
+                word: "likely",
+                meanInText: "很可能的",
+                sentence: "It is also very likely that you or someone you know has talked on a cell phone from Finland.",
+                sentenceCn: "你或你身边的人极有可能用过芬兰手机。",
+                fullInfo: "adj./adv. 可能；大概 | 搭配：It is likely that…；most likely；例句：It is likely to rain this afternoon."
+            },
+            {
+                word: "operate",
+                meanInText: "运行，操作",
+                sentence: "Linux, a popular operating system.",
+                sentenceCn: "Linux，一款流行的操作系统。",
+                fullInfo: "v. 操作；运行 | 搭配：operate a machine；operate well；例句：This system operates smoothly every day."
+            },
+            {
+                word: "operating",
+                meanInText: "运行的，操作的",
+                sentence: "Linux, a popular operating system.",
+                sentenceCn: "Linux，一款流行的操作系统。",
+                fullInfo: "adj. 操作的；运行的 | 搭配：operating system；operating rules；例句：Windows is a common operating system."
+            },
+            {
+                word: "leader",
+                meanInText: "领先者，领导者",
+                sentence: "Finland is also a leader in the world of technology.",
+                sentenceCn: "芬兰同时也是全球科技领域的领先者。",
+                fullInfo: "n. 领导者；行业龙头 | 词根：lead v.引领；例句：Finland is a leader in mobile tech."
+            },
+            {
+                word: "lead",
+                meanInText: "引领，领先",
+                sentence: "Finnish design leads the simple style in Europe.",
+                sentenceCn: "芬兰设计引领欧洲简约风格。",
+                fullInfo: "v. 引领；领先 | 搭配：lead in sth；lead the way；例句：This brand leads in environmental design."
+            },
+            {
+                word: "in addition to",
+                meanInText: "除…之外（还有）",
+                sentence: "In addition to design, Finland is also a leader in the world of technology.",
+                sentenceCn: "除设计之外，芬兰同样是全球科技领域的领先者。",
+                fullInfo: "短语；除…以外 | 同义：besides；例句：In addition to English, he speaks French."
+            },
+            {
+                word: "lasting",
+                meanInText: "耐用的，持久的",
+                sentence: "design things that not only worked well, but were also long-lasting",
+                sentenceCn: "设计出既好用又经久耐用的物品",
+                fullInfo: "adj. 持久的，耐用的 | 搭配：long-lasting；lasting beauty；例句：Finnish furniture is long-lasting and simple."
+            },
+            {
+                word: "last",
+                meanInText: "持续；耐用",
+                sentence: "Finnish products last for many years.",
+                sentenceCn: "芬兰产品可以使用很多年。",
+                fullInfo: "v. 持续；耐用 / adj. 最后的 | 搭配：last long；last for years；例句：The cold winter lasts six months in Finland."
+            },
+            {
+                word: "necessary",
+                meanInText: "必要的",
+                sentence: "The designs come out of necessary daily needs.",
+                sentenceCn: "这些设计源于日常必要的需求。",
+                fullInfo: "adj. 必要的 | 名词：necessity；搭配：necessary for sth；例句：Warm coats are necessary in northern Finland."
+            },
+            {
+                word: "necessity",
+                meanInText: "需求，必要",
+                sentence: "The Finns, out of necessity, had to design things long-lasting.",
+                sentenceCn: "出于实际需求，芬兰人必须设计经久耐用的物品。",
+                fullInfo: "n. 必需品，需求 | 搭配：out of necessity；daily necessities；例句：Out of necessity, they built simple houses."
+            },
+            {
+                word: "isolated",
+                meanInText: "偏僻隔绝的",
+                sentence: "some say developed because of the country's isolated location and long winters.",
+                sentenceCn: "有人说这种风格源于该国偏僻隔绝的地理位置与漫长冬季。",
+                fullInfo: "adj. 隔绝的；偏僻的 | 动词：isolate；例句：Finland was an isolated country hundreds of years ago."
+            },
+            {
+                word: "isolate",
+                meanInText: "隔绝，隔离",
+                sentence: "Long winters isolate small villages in Lapland.",
+                sentenceCn: "漫长冬季隔绝了拉普兰的小村庄。",
+                fullInfo: "v. 隔离，隔绝 | 搭配：isolate from；例句：Heavy snow isolates the village every winter."
+            },
+            {
+                word: "undecorated",
+                meanInText: "无装饰的，简约的",
+                sentence: "We should work for simple, good, undecorated things.",
+                sentenceCn: "我们应当追求简约、优质、不加修饰的事物。",
+                fullInfo: "adj. 无装饰的，朴素的 | 词根：decorate v.装饰；例句：His house is undecorated but warm."
+            },
+            {
+                word: "talent",
+                meanInText: "人才，天赋",
+                sentence: "Finland does have its own homegrown talent, however, Alvar Aalto.",
+                sentenceCn: "不过芬兰本土也诞生了天才设计师阿尔瓦·阿尔托。",
+                fullInfo: "n. 天赋；人才 | 搭配：homegrown talent；have a talent for；例句：He has great talent for design."
+            },
+            {
+                word: "rank",
+                meanInText: "排名，位列",
+                sentence: "Finland ranks first in the study of best country to live.",
+                sentenceCn: "在宜居国家调研中芬兰排名第一。",
+                fullInfo: "v./n. 排名；等级 | 同义：rate；搭配：rank first；rank high；例句：This school ranks top in the city."
+            },
+            {
+                word: "fabulous",
+                meanInText: "绝妙的，惊艳的",
+                sentence: "You will also enjoy seeing the fabulous Finnish architecture found in Helsinki.",
+                sentenceCn: "你也会沉醉于赫尔辛基惊艳绝伦的芬兰建筑。",
+                fullInfo: "adj. 极好的，惊艳的 | 同义：wonderful；例句：The view of Helsinki Cathedral is fabulous."
+            },
+            {
+                word: "definitely",
+                meanInText: "无疑，绝对",
+                sentence: "If you like culture, then Helsinki is definitely for you.",
+                sentenceCn: "如果你热爱人文艺术，赫尔辛基绝对适合你。",
+                fullInfo: "adv. 无疑地，肯定地 | 例句：I definitely want to visit Finland one day."
+            },
+            {
+                word: "traditional",
+                meanInText: "传统的",
+                sentence: "you will see traditional markets and open-air cafes in many places.",
+                sentenceCn: "你能在各处见到传统市集与露天咖啡馆。",
+                fullInfo: "adj. 传统的 | 搭配：traditional markets；traditional food；例句：We tried traditional Finnish fish soup."
+            },
+            {
+                word: "high-rise",
+                meanInText: "高层的",
+                sentence: "You won't see any high-rise buildings here.",
+                sentenceCn: "在这里你看不到任何高层楼宇。",
+                fullInfo: "adj./n. 高层（建筑） | 搭配：high-rise buildings；例句：There are no high-rise buildings in central Helsinki."
+            },
+            {
+                word: "feel like",
+                meanInText: "给人感觉像是",
+                sentence: "yet this big city still feels like a small town.",
+                sentenceCn: "但这座大城市依旧给人小镇般温柔的感觉。",
+                fullInfo: "短语；感觉像；想要 | 例句：The quiet lake feels like a secret world."
+            },
+            {
+                word: "business center",
+                meanInText: "商业中心",
+                sentence: "Helsinki is Finland's capital and its business centre.",
+                sentenceCn: "赫尔辛基是芬兰首都，同时也是全国商业中心。",
+                fullInfo: "短语；商业中心 | 例句：Many offices are in the city's business center."
+            },
+            {
+                word: "as well",
+                meanInText: "也，同样",
+                sentence: "they make Finland an enjoyable place for the tourists as well.",
+                sentenceCn: "它们也让芬兰成为游客喜爱的好去处。",
+                fullInfo: "短语；也（放句末） | 同义：too；例句：I like hiking, and I like kayaking as well."
+            },
+            {
+                word: "enjoyable",
+                meanInText: "令人愉悦的，好玩的",
+                sentence: "they make Finland an enjoyable place for the tourists as well.",
+                sentenceCn: "它们也让芬兰成为游客喜爱的好去处。",
+                fullInfo: "adj. 令人愉快的 | 词根：enjoy v.享受；例句：The lake trip was really enjoyable."
+            },
+            {
+                word: "however",
+                meanInText: "然而，但是",
+                sentence: "These things, however, don't just make Finland a nice place for the people who live there;",
+                sentenceCn: "不过，这些优势不只是让芬兰适合本地人居住；",
+                fullInfo: "adv. 然而（转折，逗号隔开） | 同义：but；例句：The lake is quiet; however, many tourists come here in summer."
+            },
+            {
+                word: "note",
+                meanInText: "指出，写到",
+                sentence: "The study noted that Finland was very clean and very safe.",
+                sentenceCn: "这份调研指出芬兰十分整洁、安全。",
+                fullInfo: "v. 指出，记录 / n.笔记 | 搭配：note that…；take notes；例句：The report notes Finland's natural beauty."
+            },
+            {
+                word: "rate",
+                meanInText: "评定，评级",
+                sentence: "Finland was rated the world's best country to live in.",
+                sentenceCn: "芬兰被评为全球最适合居住的国家。",
+                fullInfo: "v. 评定；n.比率 | 搭配：rate sth + 称号；cell phone ownership rate；例句：People rate this trip very highly."
+            },
+            {
+                word: "actually",
+                meanInText: "事实上，实际上",
+                sentence: "Actually, many Finns say that Santa Claus lives in Lapland.",
+                sentenceCn: "事实上，许多芬兰人都说圣诞老人住在拉普兰。",
+                fullInfo: "adv. 实际上，其实 | 例句：I actually want to stay in a lakeside cottage."
+            },
+            {
+                word: "wilderness",
+                meanInText: "荒野，野外",
+                sentence: "allowing you to cook over an open fire and enjoy a true Finnish wilderness experience.",
+                sentenceCn: "让你能够篝火烹饪，体验纯正的芬兰荒野之旅。",
+                fullInfo: "n. 荒野，原野 | 搭配：wilderness experience；deep wilderness；例句：We spent three days in the wilderness."
+            },
+            {
+                word: "wild",
+                meanInText: "野生的，荒野的",
+                sentence: "Finland has a lot of wild forests and lakes.",
+                sentenceCn: "芬兰拥有大片原始森林与湖泊。",
+                fullInfo: "adj. 野生的，荒芜的 | 搭配：wild forest；wild berries；例句：We picked wild berries by the lake."
+            }
+        ]
+    }
+    // 后续新增卡组，只需要在这里添加新的对象即可，比如：
+    // {
+    //     name: "新卡组名称",
+    //     words: [/* 新单词数组 */]
+    // }
+];
+// =====================================================================================
+
+// 全局状态
+let currentWordList = [];
+let currentIndex = 0;
+let clickStep = 0; // 0仅单词 /1单词+例句 /2单词+例句+释义
+let notKnowWords = JSON.parse(localStorage.getItem('notKnowWords')) || [];
+let currentGroupName = "";
+
+// 页面切换
+function hideAllPages() {
+    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+}
+function backHome() {
+    hideAllPages();
+    document.getElementById('page-home').classList.remove('hidden');
+    updateReviewBadge();
+}
+function goStudyList() {
+    hideAllPages();
+    document.getElementById('page-study-list').classList.remove('hidden');
+    renderGroupCards();
+}
+function backStudyList() {
+    hideAllPages();
+    document.getElementById('page-study-list').classList.remove('hidden');
+}
+function goReview() {
+    if(notKnowWords.length === 0) {
+        alert("暂无标记为「没记住」的单词！");
+        return;
+    }
+    currentWordList = [...notKnowWords];
+    currentGroupName = "待复习单词";
+    openWordPage();
+}
+
+// 渲染卡组卡片
+function renderGroupCards() {
+    const container = document.getElementById('group-card-container');
+    container.innerHTML = '';
+    wordGroups.forEach((group, index) => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-8 rounded-xl shadow-md text-center text-xl font-medium text-slate-700 border-2 border-blue-400 cursor-pointer";
+        card.innerText = group.name;
+        card.onclick = () => openWordGroup(index);
+        container.appendChild(card);
+    });
+}
+
+// 打开单词卡组
+function openWordGroup(groupIndex) {
+    const group = wordGroups[groupIndex];
+    currentGroupName = group.name;
+    currentWordList = [...group.words];
+    openWordPage();
+}
+function openWordPage() {
+    hideAllPages();
+    document.getElementById('page-word').classList.remove('hidden');
+    document.getElementById('group-title').innerText = currentGroupName;
+    currentIndex = 0;
+    renderWordCard();
+}
+
+// 渲染单词卡片
+function renderWordCard() {
+    clickStep = 0;
+    const wordObj = currentWordList[currentIndex];
+    document.getElementById('word-index').innerText = `${currentIndex+1}/${currentWordList.length}`;
+    // 重置所有内容
+    document.getElementById('word-display').innerText = wordObj.word;
+    document.getElementById('sentence-display').classList.add('hidden');
+    document.getElementById('sentence-display').innerText = `原文句子：${wordObj.sentence}\n中文翻译：${wordObj.sentenceCn}`;
+    document.getElementById('mean-display').classList.add('hidden');
+    document.getElementById('mean-display').innerText = `文中释义：${wordObj.meanInText}\n完整信息：${wordObj.fullInfo}`;
+    document.getElementById('btn-group').classList.add('hidden');
+}
+
+// 点击卡片翻页逻辑
+function clickCard() {
+    clickStep ++;
+    const sentenceDom = document.getElementById('sentence-display');
+    const meanDom = document.getElementById('mean-display');
+    const btnDom = document.getElementById('btn-group');
+    if(clickStep === 1) {
+        sentenceDom.classList.remove('hidden');
+    } else if(clickStep === 2) {
+        meanDom.classList.remove('hidden');
+        btnDom.classList.remove('hidden');
+    }
+}
+
+// 标记单词
+function markKnow() {
+    const wordObj = currentWordList[currentIndex];
+    // 从待复习列表移除
+    notKnowWords = notKnowWords.filter(w=>w.word !== wordObj.word);
+    saveNotKnow();
+    nextWord();
+}
+function markNotKnow() {
+    const wordObj = currentWordList[currentIndex];
+    // 去重存入待复习
+    const exist = notKnowWords.some(w=>w.word === wordObj.word);
+    if(!exist) notKnowWords.push(wordObj);
+    saveNotKnow();
+    nextWord();
+}
+// 保存待复习到本地存储
+function saveNotKnow() {
+    localStorage.setItem('notKnowWords', JSON.stringify(notKnowWords));
+    updateReviewBadge();
+}
+// 更新首页角标
+function updateReviewBadge() {
+    const badge = document.getElementById('review-badge');
+    if(notKnowWords.length > 0) {
+        badge.classList.remove('hidden');
+        badge.innerText = notKnowWords.length;
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// 下一个单词
+function nextWord() {
+    currentIndex ++;
+    if(currentIndex >= currentWordList.length) {
+        alert(`${currentGroupName} 单词全部完成！`);
+        backStudyList();
+        return;
+    }
+    renderWordCard();
+}
+
+// 初始化执行
+updateReviewBadge();
+</script>
+</body>
+</html>
