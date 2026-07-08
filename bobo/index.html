@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>波波英語 BoBo English — 中一至中三詞彙訓練</title>
 <style>
 :root{
@@ -20,8 +20,7 @@
 html,body{height:100%}
 body{font-family:"PingFang HK","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,-apple-system,sans-serif;
   background:var(--cream);color:var(--ink);overflow:hidden;user-select:none}
-#app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--cream);
-  padding-top:max(18px, env(safe-area-inset-top));}
+#app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--cream)}
 .screen{flex:1;min-height:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding-bottom:96px;scroll-padding-bottom:120px}
 .screen.active{display:flex}
 .screen.no-tab{padding-bottom:0}
@@ -80,10 +79,9 @@ h2{font-size:19px;font-weight:900}
 .quitx{font-size:22px;font-weight:900;color:var(--ink-lt);background:none;border:none;cursor:pointer;padding:4px 8px}
 
 /* feedback banner */
-#banner{position:absolute;left:0;right:0;bottom:0;transform:translateY(calc(100% + 96px));transition:transform .28s cubic-bezier(.22,1,.36,1),visibility 0s linear .28s;
-  background:#E4F8F0;border-top:3px solid var(--ok);padding:18px 20px calc(30px + env(safe-area-inset-bottom));z-index:1000;border-radius:22px 22px 0 0;
-  max-height:48vh;overflow-y:auto;overscroll-behavior:contain;touch-action:manipulation;visibility:hidden;pointer-events:none}
-#banner.show{transform:translateY(0);visibility:visible;pointer-events:auto;transition:transform .28s cubic-bezier(.22,1,.36,1)}
+#banner{position:absolute;left:0;right:0;bottom:0;transform:translateY(110%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+  background:#E4F8F0;border-top:3px solid var(--ok);padding:18px 20px 22px;z-index:40;border-radius:22px 22px 0 0}
+#banner.show{transform:translateY(0)}
 #banner.bad{background:#FFECEC;border-top-color:var(--bad)}
 #banner h3{font-size:18px;font-weight:900;margin-bottom:4px}
 #banner .tip{font-size:14px;color:var(--ink);margin-top:6px;line-height:1.55;background:rgba(255,255,255,.7);border-radius:10px;padding:8px 10px}
@@ -239,10 +237,8 @@ const DB_KEY='bobo_users_v1';
 function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},last:null}; }catch(e){ return {users:{},last:null}; } }
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
-const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
-function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.5.2';
+const APP_VER = 'v2.5.3-fixed';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -672,27 +668,9 @@ function unitPct(u){
 }
 
 /* ---------- 畫面骨架 ---------- */
-function clearFeedbackBanner(){
-  const b = $('#banner');
-  if(b){ b.classList.remove('show','bad'); b.innerHTML=''; }
-  __bannerBusy = false;
-}
-function rescueToHome(){
-  clearFeedbackBanner();
-  sess = null;
-  if(store.user && store.form && store.unitKey){
-    $('#tabbar').style.display='flex';
-    switchTab('home');
-    return true;
-  }
-  return false;
-}
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const s = $('#'+id);
-  s.classList.add('active');
-  s.scrollTop = 0;
-  if(id!=='scr-session') clearFeedbackBanner();
+  $('#'+id).classList.add('active');
   const focus = ['scr-session','scr-done','scr-onboard','scr-login','scr-game'].includes(id);
   if(store.form && store.unitKey) $('#tabbar').style.display = focus ? 'none' : 'flex';
 }
@@ -740,7 +718,6 @@ function ensureAdmin(){
 }
 function doLogin(){
   const uname=$('#f-user').value.trim(), pw=$('#f-pw').value;
-  if(uname==='admin') ensureAdmin();
   const db=dbLoad();
   const acc = db.users[uname];
   if(!acc) return $('#f-err').textContent='帳號不存在,請聯絡管理員開通';
@@ -1103,8 +1080,7 @@ function sessHeader(){
 /* ---------- 題型渲染 ---------- */
 function renderStep(){
   const s = $('#scr-session');
-  if(s) s.scrollTop = 0;
-  if(sess.i>=sess.steps.length) return safeFinishSession();
+  if(sess.i>=sess.steps.length) return finishSession();
   const st = sess.steps[sess.i], u = curUnit();
   if(st.t==='intro'){
     const w=st.w;
@@ -1189,6 +1165,7 @@ function qBody(qtitle, stimulus, opts, answer, w, p){
     <div id="opts">${opts.map(o=>`<button class="choice" data-val="${escAttr(o)}" onclick="pick(this)">${esc(o)}</button>`).join('')}</div></div>`;
 }
 function pick(btn){
+  // 不要用 textContent 判斷答案：普通話/簡體模式會把畫面文字轉換，導致正確答案被判錯。
   const val = btn.dataset.val ?? btn.textContent;
   const ok = val===window.__answer;
   document.querySelectorAll('#opts .choice').forEach(b=>{
@@ -1286,30 +1263,10 @@ function passCheck(){
   b.innerHTML = `<h3 style="color:${allOk?'var(--teal-dk)':'var(--bad-dk)'}">${allOk?'✅ 成篇讀晒,勁呀!':'❌ 有幾個位再溫下'}</h3>
     ${wrong.map(w=>`<div style="font-weight:800">${esc(w.en)} = ${esc(w.zh)}</div>`).join('')}
     ${wrong[0]&&wrong[0].err?`<div class="tip">💡 ${esc(wrong[0].err)}</div>`:''}
-    <button type="button" class="btn ${allOk?'':'coral'}" data-pass-next="1">繼續</button>`;
+    <button class="btn ${allOk?'':'coral'}" onclick="$('#banner').classList.remove('show');sess.i++;renderStep()">繼續</button>`;
 }
 
 /* ---------- 回饋 + 層進度 ---------- */
-let __bannerBusy = false;
-function releaseBannerBusy(){
-  setTimeout(()=>{ __bannerBusy = false; }, 700);
-}
-function advancePassageBanner(){
-  if(__bannerBusy) return;
-  __bannerBusy = true;
-  try{
-    $('#banner').classList.remove('show');
-    if(!sess || !sess.steps){ clearFeedbackBanner(); return; }
-    sess.i++;
-    renderStep();
-  }catch(err){
-    console.error('advancePassageBanner failed', err);
-    clearFeedbackBanner();
-    try{ switchTab('home'); }catch(e){}
-  }finally{
-    releaseBannerBusy();
-  }
-}
 function showBanner(ok, w, p, correctSpelling){
   const b=$('#banner');
   b.className = ok?'show':'show bad';
@@ -1321,65 +1278,27 @@ function showBanner(ok, w, p, correctSpelling){
   b.innerHTML=`<h3 style="color:${ok?'var(--teal-dk)':'var(--bad-dk)'}">${ok?'✅ '+praise[Math.floor(Math.random()*praise.length)]:'❌ 唔緊要,好快再見到佢!'}</h3>
     ${(!ok&&w)?`<div style="font-weight:800">${esc(w.en)} = ${esc(w.zh)}</div>`:''}
     ${(!ok&&p)?`<div style="font-weight:800">${esc(p.phrase)} = ${esc(p.zh)}</div>`:''}
-    ${tip}<button type="button" class="btn ${ok?'':'coral'}" data-banner-next="1" data-ok="${ok?'1':'0'}">繼續</button>`;
+    ${tip}<button class="btn ${ok?'':'coral'}" onclick="closeBanner(${ok})">繼續</button>`;
 }
 function closeBanner(ok){
-  if(__bannerBusy) return;
-  __bannerBusy = true;
-  try{
-    $('#banner').classList.remove('show');
-    if(!sess || !sess.steps || !sess.steps[sess.i]){ clearFeedbackBanner(); return; }
-    const st=sess.steps[sess.i], u=curUnit();
-    if(st.w){
-      const pr=pget(wid(u,st.w));
-      if(ok){
-        if(sess.tier===1) pr.m=Math.min(9,pr.m+1);
-        else if(sess.tier===2) pr.u=Math.min(9,pr.u+1);
-        else pr.r=Math.min(9,pr.r+1);
-        sess.right++; sess.gems+=2;
-      } else {
-        pr.wrong=(pr.wrong||0)+1; sess.wrong++;
-        if(sess.steps.length<SESSION_CAP+3) sess.steps.push({t: sess.tier===1?'mcq_zh': sess.tier===2?'cloze':'infer', w:st.w});
-      }
-    } else if(st.p){ ok? (sess.right++, sess.gems+=2) : sess.wrong++; }
-    sess.i++; renderStep();
-  }catch(err){
-    console.error('closeBanner failed', err);
-    clearFeedbackBanner();
-    try{ saveUser(); switchTab('home'); }catch(e){}
-  }finally{
-    releaseBannerBusy();
-  }
+  $('#banner').classList.remove('show');
+  const st=sess.steps[sess.i], u=curUnit();
+  if(st.w){
+    const pr=pget(wid(u,st.w));
+    if(ok){
+      if(sess.tier===1) pr.m=Math.min(9,pr.m+1);
+      else if(sess.tier===2) pr.u=Math.min(9,pr.u+1);
+      else pr.r=Math.min(9,pr.r+1);
+      sess.right++; sess.gems+=2;
+    } else {
+      pr.wrong=(pr.wrong||0)+1; sess.wrong++;
+      if(sess.steps.length<SESSION_CAP+3) sess.steps.push({t: sess.tier===1?'mcq_zh': sess.tier===2?'cloze':'infer', w:st.w});
+    }
+  } else if(st.p){ ok? (sess.right++, sess.gems+=2) : sess.wrong++; }
+  sess.i++; renderStep();
 }
-function bannerNextFromEvent(e){
-  const btn = e.target && e.target.closest ? e.target.closest('[data-banner-next],[data-pass-next]') : null;
-  if(!btn) return;
-  e.preventDefault();
-  const active = document.querySelector('.screen.active');
-  if(active && active.id && active.id!=='scr-session'){
-    clearFeedbackBanner();
-    return;
-  }
-  if(btn.dataset.passNext) advancePassageBanner();
-  else closeBanner(btn.dataset.ok==='1');
-}
-document.addEventListener('pointerup', bannerNextFromEvent, true);
-document.addEventListener('touchend', bannerNextFromEvent, true);
-document.addEventListener('click', bannerNextFromEvent, true);
 
 /* ---------- 完成頁:層/關升級動畫 ---------- */
-function safeFinishSession(){
-  try{
-    return finishSession();
-  }catch(err){
-    console.error('finishSession failed', err);
-    try{ saveUser(); }catch(e){}
-    __bannerBusy = false;
-    $('#banner').classList.remove('show');
-    try{ switchTab('home'); }catch(e){ show('scr-home'); }
-    alertTip('本輪進度已保存,請繼續挑戰下一關');
-  }
-}
 function finishSession(){
   store.gems+=sess.gems; store.doneToday++;
   const mins = Math.max(0.5, Math.round((Date.now()-sess.t0)/6000)/10);
@@ -1417,9 +1336,7 @@ function finishSession(){
     <div style="height:10px"></div>
     <button class="btn ghost" onclick="startSession()">再嚟一輪 💪</button></div>`;
   show('scr-done');
-  if(tierNowDone||gDone){
-    try{ confetti(); }catch(err){ console.error('confetti failed', err); }
-  }
+  if(tierNowDone||gDone) confetti();
 }
 function confetti(){
   const icons=['🎉','⭐','💎','🧋','✨'];
@@ -1789,26 +1706,13 @@ function showAllHistory(){
 function changeForm(f){ store.form=f; store.unitKey=unitList()[0].key; saveUser(); renderMe(); haptic(); }
 
 buildScreens();
-if(window.addEventListener){
-  window.addEventListener('pageshow', e=>{
-    if(e.persisted) clearFeedbackBanner();
-  });
-}
 (function boot(){
   ensureAdmin();
-  if(bootFlag('wipe')){
-    try{ storage.removeItem(DB_KEY); storage.removeItem('bobo_lang'); }catch(e){}
-    ensureAdmin();
-    $('#tabbar').style.display='none';
-    renderLogin();
-    return;
-  }
   const db = dbLoad();
   const last = db.last;
   if(last && last!=='admin' && db.users[last] && loadUser(last)){
     const lic = getLicense(last);
     if(lic && (lic.locked || licExpired(lic))){ renderLocked(lic.locked?'此帳戶已被鎖定':'授權已到期'); return; }
-    if(bootFlag('fix') || bootFlag('home')){ if(rescueToHome()) return; }
     if(store.form && store.unitKey){ $('#tabbar').style.display='flex'; switchTab('home'); return; }
     renderOnboard(1); return;
   }
