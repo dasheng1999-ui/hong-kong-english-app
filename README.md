@@ -2,6 +2,20 @@
 
 这是一个可直接部署到 GitHub Pages 的纯静态网页应用。
 
+## 线上入口
+
+普通单词背诵 App：
+
+```text
+https://dasheng1999-ui.github.io/hong-kong-english-app/
+```
+
+BoBoApp 网页版：
+
+```text
+https://dasheng1999-ui.github.io/hong-kong-english-app/bobo/
+```
+
 ## 在线发布方式
 
 首次发布需要：
