@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>波波英語 BoBo English — 中一至中三詞彙訓練</title>
 <style>
 :root{
@@ -20,7 +20,8 @@
 html,body{height:100%}
 body{font-family:"PingFang HK","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,-apple-system,sans-serif;
   background:var(--cream);color:var(--ink);overflow:hidden;user-select:none}
-#app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--cream)}
+#app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--cream);
+  padding-top:max(18px, env(safe-area-inset-top));}
 .screen{flex:1;min-height:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding-bottom:96px;scroll-padding-bottom:120px}
 .screen.active{display:flex}
 .screen.no-tab{padding-bottom:0}
@@ -241,7 +242,7 @@ function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCo
 const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
 function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.5.0';
+const APP_VER = 'v2.5.1';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -687,7 +688,9 @@ function rescueToHome(){
 }
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  $('#'+id).classList.add('active');
+  const s = $('#'+id);
+  s.classList.add('active');
+  s.scrollTop = 0;
   if(id!=='scr-session') clearFeedbackBanner();
   const focus = ['scr-session','scr-done','scr-onboard','scr-login','scr-game'].includes(id);
   if(store.form && store.unitKey) $('#tabbar').style.display = focus ? 'none' : 'flex';
