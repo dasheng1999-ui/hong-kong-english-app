@@ -241,7 +241,7 @@ function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCo
 const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
 function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.4.8';
+const APP_VER = 'v2.4.9';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -736,6 +736,7 @@ function ensureAdmin(){
 }
 function doLogin(){
   const uname=$('#f-user').value.trim(), pw=$('#f-pw').value;
+  if(uname==='admin') ensureAdmin();
   const db=dbLoad();
   const acc = db.users[uname];
   if(!acc) return $('#f-err').textContent='帳號不存在,請聯絡管理員開通';
@@ -1791,6 +1792,7 @@ if(window.addEventListener){
   ensureAdmin();
   if(bootFlag('wipe')){
     try{ storage.removeItem(DB_KEY); storage.removeItem('bobo_lang'); }catch(e){}
+    ensureAdmin();
     $('#tabbar').style.display='none';
     renderLogin();
     return;
