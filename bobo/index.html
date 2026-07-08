@@ -242,7 +242,7 @@ function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCo
 const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
 function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.5.1';
+const APP_VER = 'v2.5.2';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -454,6 +454,7 @@ const $ = s => document.querySelector(s);
 const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstChild; };
 const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const escAttr = s => esc(s).replace(/'/g,'&#39;');
 /* 發音 v2:修復 Windows Chrome/Edge 經典靜默問題
    ① cancel() 後引擎卡在 paused 狀態 → 每次 speak 前強制 resume()
    ② utterance 被垃圾回收致中斷 → 保持全域引用
@@ -1185,13 +1186,15 @@ function renderStep(){
 function qBody(qtitle, stimulus, opts, answer, w, p){
   window.__answer=answer; window.__w=w||null; window.__p=p||null;
   return `<div class="pad"><h2 style="margin-bottom:14px">${qtitle}</h2>${stimulus}
-    <div id="opts">${opts.map(o=>`<button class="choice" onclick="pick(this)">${esc(o)}</button>`).join('')}</div></div>`;
+    <div id="opts">${opts.map(o=>`<button class="choice" data-val="${escAttr(o)}" onclick="pick(this)">${esc(o)}</button>`).join('')}</div></div>`;
 }
 function pick(btn){
-  const ok = btn.textContent===window.__answer;
+  const val = btn.dataset.val ?? btn.textContent;
+  const ok = val===window.__answer;
   document.querySelectorAll('#opts .choice').forEach(b=>{
     b.classList.add('dim');
-    if(b.textContent===window.__answer){ b.classList.remove('dim'); b.classList.add('right'); }
+    const bval = b.dataset.val ?? b.textContent;
+    if(bval===window.__answer){ b.classList.remove('dim'); b.classList.add('right'); }
   });
   if(!ok){ btn.classList.remove('dim'); btn.classList.add('wrong'); }
   haptic(); showBanner(ok, window.__w, window.__p);
