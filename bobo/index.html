@@ -239,7 +239,7 @@ function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},la
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
 
-const APP_VER = 'v2.4.6';
+const APP_VER = 'v2.4.7';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -668,9 +668,15 @@ function unitPct(u){
 }
 
 /* ---------- 畫面骨架 ---------- */
+function clearFeedbackBanner(){
+  const b = $('#banner');
+  if(b){ b.classList.remove('show','bad'); }
+  __bannerBusy = false;
+}
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('#'+id).classList.add('active');
+  if(id!=='scr-session') clearFeedbackBanner();
   const focus = ['scr-session','scr-done','scr-onboard','scr-login','scr-game'].includes(id);
   if(store.form && store.unitKey) $('#tabbar').style.display = focus ? 'none' : 'flex';
 }
@@ -1266,13 +1272,24 @@ function passCheck(){
 
 /* ---------- 回饋 + 層進度 ---------- */
 let __bannerBusy = false;
+function releaseBannerBusy(){
+  setTimeout(()=>{ __bannerBusy = false; }, 700);
+}
 function advancePassageBanner(){
   if(__bannerBusy) return;
   __bannerBusy = true;
-  $('#banner').classList.remove('show');
-  sess.i++;
-  renderStep();
-  setTimeout(()=>{ __bannerBusy = false; }, 700);
+  try{
+    $('#banner').classList.remove('show');
+    if(!sess || !sess.steps){ clearFeedbackBanner(); return; }
+    sess.i++;
+    renderStep();
+  }catch(err){
+    console.error('advancePassageBanner failed', err);
+    clearFeedbackBanner();
+    try{ switchTab('home'); }catch(e){}
+  }finally{
+    releaseBannerBusy();
+  }
 }
 function showBanner(ok, w, p, correctSpelling){
   const b=$('#banner');
@@ -1290,27 +1307,40 @@ function showBanner(ok, w, p, correctSpelling){
 function closeBanner(ok){
   if(__bannerBusy) return;
   __bannerBusy = true;
-  $('#banner').classList.remove('show');
-  const st=sess.steps[sess.i], u=curUnit();
-  if(st.w){
-    const pr=pget(wid(u,st.w));
-    if(ok){
-      if(sess.tier===1) pr.m=Math.min(9,pr.m+1);
-      else if(sess.tier===2) pr.u=Math.min(9,pr.u+1);
-      else pr.r=Math.min(9,pr.r+1);
-      sess.right++; sess.gems+=2;
-    } else {
-      pr.wrong=(pr.wrong||0)+1; sess.wrong++;
-      if(sess.steps.length<SESSION_CAP+3) sess.steps.push({t: sess.tier===1?'mcq_zh': sess.tier===2?'cloze':'infer', w:st.w});
-    }
-  } else if(st.p){ ok? (sess.right++, sess.gems+=2) : sess.wrong++; }
-  sess.i++; renderStep();
-  setTimeout(()=>{ __bannerBusy = false; }, 700);
+  try{
+    $('#banner').classList.remove('show');
+    if(!sess || !sess.steps || !sess.steps[sess.i]){ clearFeedbackBanner(); return; }
+    const st=sess.steps[sess.i], u=curUnit();
+    if(st.w){
+      const pr=pget(wid(u,st.w));
+      if(ok){
+        if(sess.tier===1) pr.m=Math.min(9,pr.m+1);
+        else if(sess.tier===2) pr.u=Math.min(9,pr.u+1);
+        else pr.r=Math.min(9,pr.r+1);
+        sess.right++; sess.gems+=2;
+      } else {
+        pr.wrong=(pr.wrong||0)+1; sess.wrong++;
+        if(sess.steps.length<SESSION_CAP+3) sess.steps.push({t: sess.tier===1?'mcq_zh': sess.tier===2?'cloze':'infer', w:st.w});
+      }
+    } else if(st.p){ ok? (sess.right++, sess.gems+=2) : sess.wrong++; }
+    sess.i++; renderStep();
+  }catch(err){
+    console.error('closeBanner failed', err);
+    clearFeedbackBanner();
+    try{ saveUser(); switchTab('home'); }catch(e){}
+  }finally{
+    releaseBannerBusy();
+  }
 }
 function bannerNextFromEvent(e){
   const btn = e.target && e.target.closest ? e.target.closest('[data-banner-next],[data-pass-next]') : null;
   if(!btn) return;
   e.preventDefault();
+  const active = document.querySelector('.screen.active');
+  if(active && active.id && active.id!=='scr-session'){
+    clearFeedbackBanner();
+    return;
+  }
   if(btn.dataset.passNext) advancePassageBanner();
   else closeBanner(btn.dataset.ok==='1');
 }
