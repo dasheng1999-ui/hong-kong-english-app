@@ -79,10 +79,10 @@ h2{font-size:19px;font-weight:900}
 .quitx{font-size:22px;font-weight:900;color:var(--ink-lt);background:none;border:none;cursor:pointer;padding:4px 8px}
 
 /* feedback banner */
-#banner{position:absolute;left:0;right:0;bottom:0;transform:translateY(110%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+#banner{position:absolute;left:0;right:0;bottom:0;transform:translateY(calc(100% + 96px));transition:transform .28s cubic-bezier(.22,1,.36,1),visibility 0s linear .28s;
   background:#E4F8F0;border-top:3px solid var(--ok);padding:18px 20px calc(30px + env(safe-area-inset-bottom));z-index:1000;border-radius:22px 22px 0 0;
-  max-height:48vh;overflow-y:auto;overscroll-behavior:contain;touch-action:manipulation}
-#banner.show{transform:translateY(0)}
+  max-height:48vh;overflow-y:auto;overscroll-behavior:contain;touch-action:manipulation;visibility:hidden;pointer-events:none}
+#banner.show{transform:translateY(0);visibility:visible;pointer-events:auto;transition:transform .28s cubic-bezier(.22,1,.36,1)}
 #banner.bad{background:#FFECEC;border-top-color:var(--bad)}
 #banner h3{font-size:18px;font-weight:900;margin-bottom:4px}
 #banner .tip{font-size:14px;color:var(--ink);margin-top:6px;line-height:1.55;background:rgba(255,255,255,.7);border-radius:10px;padding:8px 10px}
@@ -241,7 +241,7 @@ function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCo
 const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
 function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.4.9';
+const APP_VER = 'v2.5.0';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -672,7 +672,7 @@ function unitPct(u){
 /* ---------- 畫面骨架 ---------- */
 function clearFeedbackBanner(){
   const b = $('#banner');
-  if(b){ b.classList.remove('show','bad'); }
+  if(b){ b.classList.remove('show','bad'); b.innerHTML=''; }
   __bannerBusy = false;
 }
 function rescueToHome(){
