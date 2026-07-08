@@ -80,7 +80,8 @@ h2{font-size:19px;font-weight:900}
 
 /* feedback banner */
 #banner{position:absolute;left:0;right:0;bottom:0;transform:translateY(110%);transition:transform .28s cubic-bezier(.22,1,.36,1);
-  background:#E4F8F0;border-top:3px solid var(--ok);padding:18px 20px 22px;z-index:40;border-radius:22px 22px 0 0}
+  background:#E4F8F0;border-top:3px solid var(--ok);padding:18px 20px calc(30px + env(safe-area-inset-bottom));z-index:1000;border-radius:22px 22px 0 0;
+  max-height:48vh;overflow-y:auto;overscroll-behavior:contain;touch-action:manipulation}
 #banner.show{transform:translateY(0)}
 #banner.bad{background:#FFECEC;border-top-color:var(--bad)}
 #banner h3{font-size:18px;font-weight:900;margin-bottom:4px}
@@ -1079,6 +1080,7 @@ function sessHeader(){
 /* ---------- 題型渲染 ---------- */
 function renderStep(){
   const s = $('#scr-session');
+  if(s) s.scrollTop = 0;
   if(sess.i>=sess.steps.length) return finishSession();
   const st = sess.steps[sess.i], u = curUnit();
   if(st.t==='intro'){
@@ -1259,10 +1261,19 @@ function passCheck(){
   b.innerHTML = `<h3 style="color:${allOk?'var(--teal-dk)':'var(--bad-dk)'}">${allOk?'✅ 成篇讀晒,勁呀!':'❌ 有幾個位再溫下'}</h3>
     ${wrong.map(w=>`<div style="font-weight:800">${esc(w.en)} = ${esc(w.zh)}</div>`).join('')}
     ${wrong[0]&&wrong[0].err?`<div class="tip">💡 ${esc(wrong[0].err)}</div>`:''}
-    <button class="btn ${allOk?'':'coral'}" onclick="$('#banner').classList.remove('show');sess.i++;renderStep()">繼續</button>`;
+    <button type="button" class="btn ${allOk?'':'coral'}" data-pass-next="1" onclick="advancePassageBanner()">繼續</button>`;
 }
 
 /* ---------- 回饋 + 層進度 ---------- */
+let __bannerBusy = false;
+function advancePassageBanner(){
+  if(__bannerBusy) return;
+  __bannerBusy = true;
+  $('#banner').classList.remove('show');
+  sess.i++;
+  renderStep();
+  setTimeout(()=>{ __bannerBusy = false; }, 250);
+}
 function showBanner(ok, w, p, correctSpelling){
   const b=$('#banner');
   b.className = ok?'show':'show bad';
@@ -1274,9 +1285,11 @@ function showBanner(ok, w, p, correctSpelling){
   b.innerHTML=`<h3 style="color:${ok?'var(--teal-dk)':'var(--bad-dk)'}">${ok?'✅ '+praise[Math.floor(Math.random()*praise.length)]:'❌ 唔緊要,好快再見到佢!'}</h3>
     ${(!ok&&w)?`<div style="font-weight:800">${esc(w.en)} = ${esc(w.zh)}</div>`:''}
     ${(!ok&&p)?`<div style="font-weight:800">${esc(p.phrase)} = ${esc(p.zh)}</div>`:''}
-    ${tip}<button class="btn ${ok?'':'coral'}" onclick="closeBanner(${ok})">繼續</button>`;
+    ${tip}<button type="button" class="btn ${ok?'':'coral'}" data-banner-next="1" data-ok="${ok?'1':'0'}" onclick="closeBanner(${ok})">繼續</button>`;
 }
 function closeBanner(ok){
+  if(__bannerBusy) return;
+  __bannerBusy = true;
   $('#banner').classList.remove('show');
   const st=sess.steps[sess.i], u=curUnit();
   if(st.w){
@@ -1292,7 +1305,16 @@ function closeBanner(ok){
     }
   } else if(st.p){ ok? (sess.right++, sess.gems+=2) : sess.wrong++; }
   sess.i++; renderStep();
+  setTimeout(()=>{ __bannerBusy = false; }, 250);
 }
+function bannerNextFromEvent(e){
+  const btn = e.target && e.target.closest ? e.target.closest('[data-banner-next],[data-pass-next]') : null;
+  if(!btn) return;
+  e.preventDefault();
+  if(btn.dataset.passNext) advancePassageBanner();
+  else closeBanner(btn.dataset.ok==='1');
+}
+document.addEventListener('pointerup', bannerNextFromEvent, true);
 
 /* ---------- 完成頁:層/關升級動畫 ---------- */
 function finishSession(){
