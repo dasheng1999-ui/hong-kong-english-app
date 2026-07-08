@@ -238,8 +238,10 @@ const DB_KEY='bobo_users_v1';
 function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},last:null}; }catch(e){ return {users:{},last:null}; } }
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
+const BOOT_QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return {has:()=>false}; } })();
+function bootFlag(name){ return BOOT_QS.has(name); }
 
-const APP_VER = 'v2.4.7';
+const APP_VER = 'v2.4.8';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -672,6 +674,16 @@ function clearFeedbackBanner(){
   const b = $('#banner');
   if(b){ b.classList.remove('show','bad'); }
   __bannerBusy = false;
+}
+function rescueToHome(){
+  clearFeedbackBanner();
+  sess = null;
+  if(store.user && store.form && store.unitKey){
+    $('#tabbar').style.display='flex';
+    switchTab('home');
+    return true;
+  }
+  return false;
 }
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1770,13 +1782,25 @@ function showAllHistory(){
 function changeForm(f){ store.form=f; store.unitKey=unitList()[0].key; saveUser(); renderMe(); haptic(); }
 
 buildScreens();
+if(window.addEventListener){
+  window.addEventListener('pageshow', e=>{
+    if(e.persisted) clearFeedbackBanner();
+  });
+}
 (function boot(){
   ensureAdmin();
+  if(bootFlag('wipe')){
+    try{ storage.removeItem(DB_KEY); storage.removeItem('bobo_lang'); }catch(e){}
+    $('#tabbar').style.display='none';
+    renderLogin();
+    return;
+  }
   const db = dbLoad();
   const last = db.last;
   if(last && last!=='admin' && db.users[last] && loadUser(last)){
     const lic = getLicense(last);
     if(lic && (lic.locked || licExpired(lic))){ renderLocked(lic.locked?'此帳戶已被鎖定':'授權已到期'); return; }
+    if(bootFlag('fix') || bootFlag('home')){ if(rescueToHome()) return; }
     if(store.form && store.unitKey){ $('#tabbar').style.display='flex'; switchTab('home'); return; }
     renderOnboard(1); return;
   }
