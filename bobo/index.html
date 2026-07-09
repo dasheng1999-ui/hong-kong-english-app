@@ -238,7 +238,7 @@ function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},la
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
 
-const APP_VER = 'v2.5.3-fixed';
+const APP_VER = 'v2.5.4-v2';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'yue',
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'' };
 const HATS = {teal:['#0EB5A3','#0A8E80','青瓷帽'], coral:['#FF7A59','#E05A3A','珊瑚帽'], mango:['#FFC93F','#E0A820','芒果帽'], berry:['#8B7CF6','#6C5CE0','莓紫帽']};
@@ -1055,9 +1055,18 @@ function startSession(forceGi){
       if(!s || seen.has(s.toLowerCase())) continue;
       seen.add(s.toLowerCase()); chunk.push({w, s});
     }
-    if(chunk.length>=3) steps.push({t:'passage', ws:chunk.map(c=>c.w), sents:chunk.map(c=>c.s)});
-    const inPass = new Set(chunk.map(c=>c.w.en));
+    // 只有湊夠 3 個詞才出「短文閱讀」。
+    // 如果只剩 1-2 個 pending 詞，不可以先放進 inPass 再排除，否則 steps 會變成 0，手機端點擊後就會白屏。
+    const inPass = new Set();
+    if(chunk.length>=3){
+      steps.push({t:'passage', ws:chunk.map(c=>c.w), sents:chunk.map(c=>c.s)});
+      chunk.forEach(c=>inPass.add(c.w.en));
+    }
     target.filter(w=>!inPass.has(w.en)).forEach(w=>steps.push({t:'infer',w}));
+  }
+  // 防呆：任何資料異常導致沒生成題目時，至少出語境推義題，不讓空白頁出現
+  if(!steps.length && target && target.length){
+    target.forEach(w=>steps.push({t:'infer',w}));
   }
   // 每輪加一題短語(唔影響層進度,保持新鮮感)
   if(u.phrases.length && tier!==3){
@@ -1070,7 +1079,7 @@ function startSession(forceGi){
   renderStep(); show('scr-session');
 }
 function sessHeader(){
-  const pct = Math.round(100*sess.i/sess.steps.length);
+  const pct = sess.steps.length ? Math.round(100*sess.i/sess.steps.length) : 0;
   return `<div class="topbar" style="padding-top:16px">
     <button class="quitx" onclick="switchTab('home')">✕</button>
     <div class="pbarwrap"><div class="pbar" style="width:${pct}%"></div></div>
