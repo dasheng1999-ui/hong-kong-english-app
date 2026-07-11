@@ -246,7 +246,7 @@ function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},la
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
 
-const APP_VER = 'v2.8.0';
+const APP_VER = 'v2.8.1';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'cmn',   // 全 App 固定簡體中文
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'',
   wrongBank:{}, sx:{}, miss:{}, gear:{owned:[],head:null,face:null,neck:null}, gameUnits:[], lastBackup:'' };
@@ -738,8 +738,9 @@ function renderLogin(){
     <input class="field" id="f-pw" type="password" placeholder="密碼" autocomplete="off">
     <p class="sub" id="f-err" style="color:var(--bad);min-height:20px;margin-bottom:6px"></p>
     <button class="btn" onclick="doLogin()">登入</button>
-    <p class="sub center" style="margin-top:14px">帳號由管理員開通 · 試用/購買請聯絡波波媽媽</p>
-    <p class="sub center" style="margin-top:10px"><a href="javascript:doRestore()" style="color:var(--teal-dk);font-weight:700">📂 換咗手機/清咗數據?點此恢復備份</a></p>
+    <p class="sub center" style="margin-top:14px">試用/購買請聯絡波波媽媽</p>
+    <p class="sub center" style="margin-top:10px"><a href="javascript:showActivate()" style="color:var(--coral-dk);font-weight:800">🎟 有激活碼?點此開通新帳號</a></p>
+    <p class="sub center" style="margin-top:8px"><a href="javascript:doRestore()" style="color:var(--teal-dk);font-weight:700">📂 換咗手機/清咗數據?點此恢復備份</a></p>
     <p class="sub center" style="margin-top:8px;font-size:11px;opacity:.7">波波英語 ${APP_VER}</p>
   </div>`;
   show('scr-login');
@@ -778,6 +779,79 @@ function logout(){ saveUser(); $('#tabbar').style.display='none'; renderLogin('l
 
 /* ---------- 管理後台 ---------- */
 let admSel = {stages:[], units:[], plan:30, user:'', pw:'', nick:''};
+/* ---------- 激活碼:無伺服器售賣方案(碼內含簽名,任何裝置可驗證) ---------- */
+const CODE_SECRET = 'bobo-lic-2026-v1-波波';
+function b64u(s){ return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function ub64u(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return decodeURIComponent(escape(atob(s))); }
+function codeSig(b){ return pwHash(b + CODE_SECRET + b.length).toUpperCase(); }
+function makeCode(days, stages, units){
+  const payload = [days, (stages||[]).join(','), (units||[]).join(','), Math.random().toString(36).slice(2,8)].join('|');
+  const b = b64u(payload);
+  return 'BOBO-' + b + '-' + codeSig(b);
+}
+function parseCode(code){
+  const m = String(code).trim().replace(/\s/g,'').match(/^BOBO-([A-Za-z0-9_-]+)-(H[A-Z0-9]+)$/i);
+  if(!m) return null;
+  if(codeSig(m[1]) !== m[2].toUpperCase()) return null;
+  try{
+    const p = ub64u(m[1]).split('|');
+    return { d: parseFloat(p[0]), s: p[1]? p[1].split(',') : [], u: p[2]? p[2].split(',') : [], id: m[2].slice(-8) };
+  }catch(e){ return null; }
+}
+function admGenCodes(){
+  admCapture();
+  const n = Math.max(1, Math.min(10, parseInt(($('#c-n')&&$('#c-n').value)||'1')||1));
+  const db = dbLoad(); db.codes = db.codes||[];
+  const scope = admSel.units.length? admSel.units.length+' 個單元' : admSel.stages.length? admSel.stages.join('/') : '全部教材';
+  const out = [];
+  for(let i=0;i<n;i++){
+    const c = makeCode(admSel.plan, admSel.stages, admSel.units);
+    out.push(c);
+    db.codes.unshift({code:c, plan:admSel.plan, scope, at:today()});
+  }
+  if(db.codes.length>50) db.codes.length = 50;
+  dbSave(db); haptic();
+  $('#modalbody').innerHTML = `<h2 style="margin-bottom:6px">🎟 已生成 ${n} 張激活碼</h2>
+    <p class="sub" style="margin-bottom:8px">${admSel.plan===0?'永久':admSel.plan+'天'} · ${scope} · 客戶自激活之日起計</p>
+    <textarea class="field" id="code-ta" style="height:${Math.min(220,60+n*40)}px;font-size:12px;word-break:break-all" readonly>${out.join('\n\n')}</textarea>
+    <button class="btn" onclick="const t=$('#code-ta');t.select();document.execCommand('copy');this.textContent='✅ 已複製'">複製全部</button>
+    <p class="sub" style="margin-top:8px">發貨 = 把「App 連結 + 一張激活碼」發俾客戶;佢喺登入頁點「輸入激活碼」自己開帳號。</p>`;
+  $('#modal').classList.add('show');
+  renderAdmin();
+}
+function showActivate(){
+  $('#modalbody').innerHTML = `<h2 style="margin-bottom:6px">🎟 輸入激活碼開通</h2>
+    <p class="sub" style="margin-bottom:10px">向波波媽媽購買後,你會收到一張激活碼;喺呢度開通你自己嘅帳號</p>
+    <input class="field" id="ac-code" placeholder="激活碼(BOBO-開頭成串貼入)" autocomplete="off">
+    <input class="field" id="ac-user" placeholder="自訂帳號名(英文/數字 3-16 位)" autocomplete="off">
+    <input class="field" id="ac-pw" type="password" placeholder="自訂密碼(至少 4 位)" autocomplete="off">
+    <p class="sub" id="ac-err" style="color:var(--bad);min-height:18px"></p>
+    <button class="btn coral" onclick="doActivate()">✅ 開通並開始學習</button>`;
+  $('#modal').classList.add('show');
+}
+function doActivate(){
+  const err = m => { $('#ac-err').textContent = m; };
+  const code = $('#ac-code').value, uname = $('#ac-user').value.trim(), pw = $('#ac-pw').value;
+  const info = parseCode(code);
+  if(!info) return err('激活碼無效,請檢查有冇抄漏/抄錯');
+  if(!/^[A-Za-z0-9_]{3,16}$/.test(uname)) return err('帳號名要 3-16 位英文/數字');
+  if(pw.length<4) return err('密碼至少 4 位');
+  let used = [];
+  try{ used = JSON.parse(storage.getItem('bobo_used_codes')||'[]'); }catch(e){}
+  if(used.includes(info.id)) return err('呢張激活碼喺此裝置已經用過');
+  const db = dbLoad();
+  if(db.users[uname]) return err('帳號名已被使用,換一個試下');
+  const exp = info.d>0? new Date(Date.now()+info.d*86400000).toISOString() : null;
+  db.users[uname] = { pw: pwHash(pw), nick: uname,
+    license:{ exp, plan:info.d, stages:info.s, units:info.u, locked:false, created:today(),
+              devices:[{id:deviceId(), label:deviceLabel(), at:today()}] } };
+  db.last = uname; dbSave(db);
+  used.push(info.id); try{ storage.setItem('bobo_used_codes', JSON.stringify(used)); }catch(e){}
+  $('#modal').classList.remove('show');
+  loadUser(uname); saveUser(); haptic();
+  renderOnboard(1);
+}
+
 function admCapture(){ const u=$('#a-user'); if(u){ admSel.user=u.value; admSel.pw=$('#a-pw').value; admSel.nick=$('#a-nick').value; } }
 function renderAdmin(){
   $('#tabbar').style.display='none';
@@ -810,6 +884,22 @@ function renderAdmin(){
       <p class="sub" style="margin-bottom:10px">裝置綁定:每帳戶 2 部(手機+平板),首兩部登入裝置自動綁定,第三部登入即自動鎖定。</p>
       <button class="btn coral" onclick="admCreate()">✅ 開通帳戶</button>
       <p class="sub" id="a-err" style="color:var(--bad);min-height:18px;margin-top:6px"></p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:6px">🎟 生成激活碼(遠程發貨用)</h2>
+      <p class="sub" style="margin-bottom:10px">用上面選好嘅「有效期 + 教材/課次範圍」出碼;客戶收到碼後喺自己手機開帳號,唔使你操作。有效期由客戶激活嗰日起計。</p>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="font-weight:800">張數</span>
+        <input class="field" id="c-n" type="number" min="1" max="10" value="1" style="width:80px;margin:0">
+        <span style="flex:1"></span>
+        <button class="btn" onclick="admGenCodes()">生成激活碼</button>
+      </div>
+      ${(db.codes&&db.codes.length)? `<p style="font-weight:800;margin:12px 0 4px">已發出 <span class="sub">(最近 ${Math.min(db.codes.length,20)} 張)</span></p>
+      <div style="max-height:160px;overflow:auto">
+        ${db.codes.slice(0,20).map(c=>`<div class="sub" style="font-size:11px;word-break:break-all;border-bottom:1px dashed var(--line);padding:4px 0">
+          <b>${c.plan===0?'永久':c.plan+'天'}</b> · ${esc(c.scope)} · ${c.at}<br>${esc(c.code)}</div>`).join('')}
+      </div>`:''}
     </div>
 
     <h2 style="margin-bottom:10px">帳戶列表 <span class="sub">(${custs.length})</span></h2>
