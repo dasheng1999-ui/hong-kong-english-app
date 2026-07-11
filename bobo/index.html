@@ -246,7 +246,7 @@ function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},la
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
 
-const APP_VER = 'v2.8.1';
+const APP_VER = 'v2.9.2';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'cmn',   // 全 App 固定簡體中文
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'',
   wrongBank:{}, sx:{}, miss:{}, gear:{owned:[],head:null,face:null,neck:null}, gameUnits:[], lastBackup:'' };
@@ -1838,14 +1838,14 @@ function renderArcade(){
         <div style="flex:1"><div style="font-weight:900;font-size:14px">遊戲詞庫範圍</div>
           <div class="sub" style="font-size:12px">${gameUnitsLabel()} · 點擊揀書揀課(可多選)</div></div>
         <span class="chip">揀課 ▾</span></div>
-      <div class="gamecard" onclick="startGame('rain')"><span class="gi">🫧</span>
-        <div style="flex:1"><div class="gt">接珍珠 · 意思快反應</div><div class="gd">中文意思浮喺底,啱嘅英文珍珠跌落嚟就撳!練英→中秒反應</div></div>
+      <div class="gamecard" onclick="startGame('bubble')"><span class="gi">🫧</span>
+        <div style="flex:1"><div class="gt">打泡泡 · 意思快反應</div><div class="gd">彩色泡泡浮上嚟,撳爆對應中文意思嘅英文泡!有「啵」一聲爆破音</div></div>
         <span class="chip">免費</span></div>
-      <div class="gamecard" onclick="startGame('match')"><span class="gi">🎴</span>
-        <div style="flex:1"><div class="gt">配對翻卡 · 記憶大師</div><div class="gd">英文卡配中文卡,翻得越少分越高!練詞義配對記憶</div></div>
+      <div class="gamecard" onclick="startGame('bottle')"><span class="gi">🍾</span>
+        <div style="flex:1"><div class="gt">打瓶子 · 百發百中</div><div class="gd">瓶仔向右行,打爆對應中文意思嘅英文瓶!6 次機會,配碎瓶音效</div></div>
         <span class="chip">免費</span></div>
-      <div class="gamecard" onclick="startGame('speed')"><span class="gi">⚡</span>
-        <div style="flex:1"><div class="gt">串字快手 · 45秒挑戰</div><div class="gd">限時串字,串得越多越勁!練拼寫熟練度</div></div>
+      <div class="gamecard" onclick="startGame('pairs')"><span class="gi">🎴</span>
+        <div style="flex:1"><div class="gt">詞彙對對碰 · 限時消消樂</div><div class="gd">4×4 明牌,中文配英文點走一對!60 秒內全部消晒</div></div>
         <span class="chip">免費</span></div>
       <h2 style="margin:18px 0 4px">波波裝扮屋 <span class="sub">(裝扮跟你成個 App 走)</span></h2>
       <div class="center" style="margin:6px 0 10px">${mascotSVG(110,'happy')}</div>
@@ -1901,9 +1901,9 @@ function startGame(kind){
   // 遊戲永久免費:目的係俾學生喺遊戲入面反覆見到單詞,唔設任何門檻
   saveUser();
   document.querySelectorAll('.confetti').forEach(c=>c.remove());
-  if(kind==='rain') gameRain();
-  if(kind==='match') gameMatch();
-  if(kind==='speed') gameSpeed();
+  if(kind==='rain'||kind==='bubble') gameBubble();
+  if(kind==='bottle') gameBottle();
+  if(kind==='pairs') gamePairs();
   show('scr-game');
 }
 function gameHeader(title, extra){
@@ -1931,132 +1931,340 @@ function gameOver(title, score, detail){
 }
 
 /* 遊戲1:接珍珠(英→中快反應) */
-function gameRain(){
-  const ws = learnedWords(8).slice(0,10);
-  game = {score:0, life:3, qi:0, ws, drops:[], iv:null, iv2:null, t:60};
-  $('#scr-game').innerHTML = gameHeader('🫧 接珍珠', `<span class="chip" id="g-score">0</span><span class="chip" id="g-life">❤️3</span>`)+
+/* 遊戲1:打泡泡(5-6 個彩色泡泡緩緩上升,撳爆對應中文意思嘅英文泡) */
+function sfxPop(){   // 泡泡爆破:短促「啵」聲
+  if(!store.sound) return; const c=audioCtx(); if(!c) return;
+  try{
+    const t=c.currentTime;
+    const o=c.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(140,t+0.09);
+    const g=c.createGain(); g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.1);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.11);
+    const len=Math.floor(c.sampleRate*0.05), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=c.createBufferSource(); src.buffer=buf;
+    const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1300;
+    const g2=c.createGain(); g2.gain.setValueAtTime(0.16,t); g2.gain.exponentialRampToValueAtTime(0.01,t+0.05);
+    src.connect(f); f.connect(g2); g2.connect(c.destination); src.start(t);
+  }catch(e){}
+}
+const BUBBLE_COLS = [['#FF5A78','#C41E4B'],['#FFD24A','#E09A12'],['#9E5AF7','#6A2BD0'],['#5AD16A','#2E9E44'],['#4AC8F4','#1287C4'],['#FF9A4A','#D96A10']];
+const BUBBLE_LANES = 5, BUBBLE_TIME = 60;
+function gameBubble(){
+  let pool = learnedWords(12);
+  const short = pool.filter(w=>w.en.length<=12);
+  if(short.length>=8) pool = short;
+  pool = pool.slice(0,14);
+  game = { score:0, life:3, t:BUBBLE_TIME, pool, target:null, lastCorrect:0, bubbles:[], iv:null, iv2:null };
+  $('#scr-game').innerHTML = gameHeader('🫧 打泡泡', `<span class="chip" id="g-score">0</span><span class="chip" id="g-life">❤️3</span><span class="chip" id="g-time">${BUBBLE_TIME}s</span>`)+
    `<div class="pad" style="padding-top:4px">
-     <div id="rainzone"></div>
-     <div class="card center" style="margin-top:12px;padding:10px"><span class="sub">撳跌緊落嚟、意思係——</span><div id="g-target" style="font-size:20px;font-weight:900;color:var(--teal-dk)"></div></div>
-   </div>`;
-  nextRainTarget();
-  game.iv = setInterval(spawnDrop, 1300);
-  game.iv2 = setInterval(()=>{ // move drops
-    const zone = $('#rainzone'); if(!zone){ return endGame(); }
-    const zh = zone.clientHeight;
-    game.drops.forEach(d=>{
-      d.y += d.v; d.el.style.top = d.y+'px';
-      if(d.y > zh-30){ d.el.remove(); if(d.word===game.target.en){ loseLife(); nextRainTarget(); } game.drops=game.drops.filter(x=>x!==d); }
-    });
-  }, 50);
-  spawnDrop();
-}
-function nextRainTarget(){
-  game.target = game.ws[game.qi % game.ws.length]; game.qi++;
-  const t=$('#g-target'); if(t) t.textContent = game.target.zh;
-}
-function spawnDrop(){
-  const zone = $('#rainzone'); if(!zone||!game) return;
-  const pool = [game.target, ...shuffle(game.ws.filter(w=>w.en!==game.target.en)).slice(0,2)];
-  const w = pool[Math.floor(Math.random()*pool.length)];
-  const el = document.createElement('div'); el.className='drop'; el.textContent=w.en;
-  el.style.left = (8+Math.random()*60)+'%';
-  el.onclick = ()=>{
+     <div id="bzone" style="position:relative;height:330px;border-radius:18px;overflow:hidden;background:linear-gradient(175deg,#5FB6EE,#2E86D4)"></div>
+     <div class="card center" style="margin-top:12px;padding:12px">
+       <span class="sub">撳爆係呢個意思嘅英文泡泡——</span>
+       <div id="g-target" style="font-size:24px;font-weight:900;color:var(--teal-dk)"></div>
+     </div></div>`;
+  const zone = $('#bzone');
+  const W = zone.clientWidth || 340, laneW = W / BUBBLE_LANES;
+  // 5 條泡泡通道,一條通道一個泡 → 永遠唔會互相遮擋;大小唔同、顏色唔同
+  for(let i=0;i<BUBBLE_LANES;i++){
+    const b = { lane:i, y: -20 - i*72, size:0, col:0, word:null, correct:false, popped:false,
+                v: 22 + Math.random()*20, id:'bub'+i };   // 上升速度同接珍珠一致(約 22-42px/秒)
+    game.bubbles.push(b);
+    zone.appendChild(el(`<div id="${b.id}" onpointerdown="tapBubble(${i})"
+      style="position:absolute;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;display:flex;align-items:center;justify-content:center;text-align:center;transition:transform .18s,opacity .18s"></div>`));
+  }
+  pickBubbleTarget();
+  game.bubbles.forEach(b=>respawnBubble(b));
+  drawBubbles();
+  game.iv = setInterval(()=>{
     if(!game) return;
-    if(w.en===game.target.en){ el.classList.add('good'); game.score+=3; $('#g-score').textContent=game.score;
-      setTimeout(()=>el.remove(),150); game.drops=game.drops.filter(x=>x.el!==el); speak(w.en); nextRainTarget();
-      if(game.score>=30) gameOver('好嘢!珍珠大豐收!🫧', game.score, '英→中反應越嚟越快喇'); }
-    else { el.classList.add('bad'); game.score=Math.max(0,game.score-1); $('#g-score').textContent=game.score; loseLife(); }
-  };
-  zone.appendChild(el);
-  game.drops.push({el, y:-40, v: 1.1+Math.random()*1.1, word:w.en});
+    game.t--;
+    const tc=$('#g-time'); if(tc) tc.textContent=game.t+'s';
+    if(game.t<=0) gameOver('時間到!🫧', game.score, `爆咗 ${Math.floor(game.score/10)} 個泡泡,反應唔錯!`);
+  },1000);
+  game.iv2 = setInterval(()=>{
+    if(!game) return;
+    const zh = ($('#bzone')&&$('#bzone').clientHeight)||330;
+    game.bubbles.forEach(b=>{
+      if(b.popped) return;
+      b.y += b.v*0.05;
+      if(b.y > zh + b.size){   // 浮出頂部:正確泡走甩唔扣命,直接換一批詞重生
+        const wasCorrect = b.correct;
+        respawnBubble(b);
+        if(wasCorrect){ /* 正確泡飄走 → 儘快再出一個 */ game.lastCorrect = 0; }
+      }
+    });
+    drawBubbles();
+  }, 50);
 }
-function loseLife(){
-  if(!game) return;
-  game.life--; const l=$('#g-life'); if(l) l.textContent='❤️'+game.life;
-  if(game.life<=0) gameOver('波波接唔切喇~', game.score, '聽日再嚟挑戰高分!');
+function bubbleCorrectOnScreen(){ return game.bubbles.some(b=>b.correct && !b.popped); }
+function respawnBubble(b){
+  b.popped=false; b.y = -20 - Math.random()*60;
+  b.size = 48 + Math.floor(Math.random()*3)*9;          // 48 / 57 / 66,大細唔同
+  b.col = Math.floor(Math.random()*BUBBLE_COLS.length); // 顏色唔同
+  if(game.target && !bubbleCorrectOnScreen() && Date.now()-game.lastCorrect>=1000){
+    b.word = game.target.en; b.correct = true; game.lastCorrect = Date.now();
+  } else {
+    const others = game.pool.filter(w=>!game.target || w.en!==game.target.en);
+    b.word = others[Math.floor(Math.random()*others.length)].en; b.correct = false;
+  }
 }
-
-/* 遊戲2:配對翻卡 */
-function gameMatch(){
-  const ws = learnedWords(6).slice(0,6);
-  const cards = shuffle(ws.flatMap((w,i)=>[{t:w.en,k:i},{t:w.zh,k:i}]));
-  game = {open:[], matched:0, flips:0, iv:null, iv2:null};
-  $('#scr-game').innerHTML = gameHeader('🎴 配對翻卡', `<span class="chip" id="g-flip">0 翻</span>`)+
-   `<div class="pad" style="padding-top:4px"><div class="mmgrid">
-    ${cards.map((c,i)=>`<div class="mmcard" id="mm${i}" data-k="${c.k}" onclick="flipCard(${i})">波波</div>`).join('')}
-   </div><p class="sub center" style="margin-top:12px">英文卡 配 中文卡</p></div>`;
-  game.cards = cards;
-}
-function flipCard(i){
-  if(!game) return;
-  const el = document.getElementById('mm'+i);
-  if(el.classList.contains('open')||el.classList.contains('matched')||game.open.length>=2) return;
-  el.classList.add('open'); el.textContent = game.cards[i].t;
-  game.open.push(i); game.flips++; $('#g-flip').textContent=game.flips+' 翻';
-  if(game.open.length===2){
-    const [a,b]=game.open;
-    if(game.cards[a].k===game.cards[b].k && a!==b){
-      setTimeout(()=>{ document.getElementById('mm'+a).classList.add('matched');
-        document.getElementById('mm'+b).classList.add('matched');
-        game.open=[]; game.matched++;
-        if(game.matched===6){ const score=Math.max(6, 30-(game.flips-12)); gameOver('全部配對成功!🎴', score, `${game.flips} 次翻卡完成,好記性!`); }
-      },350);
-    } else {
-      setTimeout(()=>{ [a,b].forEach(x=>{ const e=document.getElementById('mm'+x); e.classList.remove('open'); e.textContent='波波'; }); game.open=[]; },700);
+function pickBubbleTarget(){
+  const cand = game.pool.filter(w=>!game.target || w.en!==game.target.en);
+  game.target = cand[Math.floor(Math.random()*cand.length)];
+  const t=$('#g-target'); if(t) t.textContent = game.target.zh;
+  let kept=false;
+  game.bubbles.forEach(b=>{
+    b.correct=false;
+    if(b.word===game.target.en && !b.popped){
+      if(!kept){ b.correct=true; kept=true; game.lastCorrect=Date.now(); }
+      else { const others=game.pool.filter(w=>w.en!==game.target.en); b.word=others[Math.floor(Math.random()*others.length)].en; }
     }
+  });
+}
+function drawBubbles(){
+  const zone=$('#bzone'); if(!zone) return;
+  const zh = zone.clientHeight||330, W = zone.clientWidth||340, laneW = W/BUBBLE_LANES;
+  game.bubbles.forEach(b=>{
+    const d=document.getElementById(b.id); if(!d) return;
+    const wob = Math.sin((b.y+b.lane*40)/28)*6;   // 輕微左右搖擺
+    d.style.left = Math.round(b.lane*laneW + (laneW-b.size)/2 + wob)+'px';
+    d.style.top  = Math.round(zh - b.y - b.size)+'px';
+    const key = (b.word||'')+'|'+b.size+'|'+b.col+'|'+(b.popped?1:0);
+    if(d.dataset.k !== key){
+      d.dataset.k = key;
+      const [c1,c2] = BUBBLE_COLS[b.col];
+      d.style.width = b.size+'px'; d.style.height = b.size+'px';
+      d.style.borderRadius = '50%';
+      d.style.background = `radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.35) 18%, ${c1} 48%, ${c2} 100%)`;
+      d.style.boxShadow = 'inset -3px -6px 10px rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.2)';
+      d.style.transform = b.popped? 'scale(1.5)' : 'scale(1)';
+      d.style.opacity = b.popped? '0' : '1';
+      const fs = b.word && b.word.length>9? 10 : 12;
+      d.innerHTML = `<span style="pointer-events:none;color:#fff;font-weight:900;font-size:${fs}px;line-height:1.15;text-shadow:0 1px 3px rgba(0,0,0,.55);word-break:break-word;padding:0 4px">${esc(b.word||'')}</span>`;
+    } else {
+      d.style.transform = b.popped? 'scale(1.5)' : 'scale(1)';
+      d.style.opacity = b.popped? '0' : '1';
+    }
+  });
+}
+function tapBubble(i){
+  if(!game || !game.bubbles[i]) return;
+  const b = game.bubbles[i]; if(b.popped) return;
+  if(b.word === game.target.en){
+    sfxPop(); haptic();
+    b.popped = true; b.correct = false;
+    game.score += 10; $('#g-score').textContent = game.score;
+    drawBubbles();   // 即刻播爆破動畫
+    const bb=b;
+    setTimeout(()=>{ if(game && bb.popped) respawnBubble(bb); }, 450);
+    pickBubbleTarget();
+    if(game.score >= 150) gameOver('泡泡大師!🫧', game.score, '15 個全爆,反應一流!');
+  } else {
+    game.life--; haptic();
+    const lc=$('#g-life'); if(lc) lc.textContent='❤️'+game.life;
+    const d=document.getElementById(b.id);
+    if(d){ d.style.filter='brightness(.55)'; setTimeout(()=>{ if(d) d.style.filter=''; },280); }
+    if(game.life<=0) gameOver('機會用完喇 🫧', game.score, `爆咗 ${Math.floor(game.score/10)} 個泡,下次睇真啲!`);
   }
 }
 
-/* 遊戲3:串字快手 */
-function gameSpeed(){
-  const ws = learnedWords(8).filter(w=>w.en.replace(/[^A-Za-z]/g,'').length<=9);
-  game = {score:0, qi:0, ws:shuffle(ws), t:45, iv:null, iv2:null, cur:'', word:''};
-  $('#scr-game').innerHTML = gameHeader('⚡ 串字快手', `<span class="chip" id="g-score">0</span>`)+
+/* 遊戲2:打瓶子(舊配對翻卡已由對對碰取代) */
+/* ---------- 遊戲音效(Web Audio 即場合成,唔使音頻檔) ---------- */
+let __audio = null;
+function audioCtx(){
+  if(!__audio){ try{ __audio = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(__audio && __audio.state==='suspended'){ try{ __audio.resume(); }catch(e){} }
+  return __audio;
+}
+function sfxBreak(){   // 玻璃碎裂:高頻噪聲爆破 + 下滑叮聲
+  if(!store.sound) return; const c=audioCtx(); if(!c) return;
+  try{
+    const t=c.currentTime;
+    const len=Math.floor(c.sampleRate*0.25), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
+    const src=c.createBufferSource(); src.buffer=buf;
+    const f=c.createBiquadFilter(); f.type='highpass'; f.frequency.value=2600;
+    const g=c.createGain(); g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.25);
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+    const o=c.createOscillator(); o.type='triangle';
+    o.frequency.setValueAtTime(1900,t); o.frequency.exponentialRampToValueAtTime(500,t+0.16);
+    const g2=c.createGain(); g2.gain.setValueAtTime(0.22,t); g2.gain.exponentialRampToValueAtTime(0.01,t+0.18);
+    o.connect(g2); g2.connect(c.destination); o.start(t); o.stop(t+0.2);
+  }catch(e){}
+}
+function sfxStar(){   // 星星閃:三連上行琶音
+  if(!store.sound) return; const c=audioCtx(); if(!c) return;
+  try{
+    const t=c.currentTime;
+    [880,1320,1760].forEach((fr,i)=>{
+      const o=c.createOscillator(); o.type='sine'; o.frequency.value=fr;
+      const g=c.createGain(); const st=t+i*0.07;
+      g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.28,st+0.02); g.gain.exponentialRampToValueAtTime(0.01,st+0.26);
+      o.connect(g); g.connect(c.destination); o.start(st); o.stop(st+0.3);
+    });
+  }catch(e){}
+}
+
+/* 遊戲2:打瓶子(兩排瓶向右移,打爆對應中文意思嘅英文瓶;6 次機會) */
+function bottleSVG(i, broken){
+  if(broken) return '<div style="font-size:34px;line-height:52px">💥</div>';
+  const cols=['#F4A83C','#E2574C','#3FB8AF','#8B7CF6','#5AA9FF','#7BC96F','#F46FA0','#FFC93F','#B08BEB','#63C7B2'];
+  const c=cols[i%cols.length], shape=i%3;
+  const body = shape===0? '<rect x="10" y="18" width="16" height="30" rx="5"/><rect x="14" y="6" width="8" height="14" rx="3"/>'
+    : shape===1? '<ellipse cx="18" cy="35" rx="10" ry="13"/><rect x="14" y="6" width="8" height="19" rx="3"/>'
+    : '<path d="M12 48 L12 24 Q18 17 24 24 L24 48 Z"/><rect x="15" y="8" width="6" height="15" rx="3"/>';
+  return `<svg width="36" height="52" viewBox="0 0 36 52" style="display:block;margin:0 auto"><g fill="${c}" stroke="rgba(0,0,0,.25)" stroke-width="2">${body}</g><ellipse cx="14" cy="26" rx="2.5" ry="6" fill="#fff" opacity=".35"/></svg>`;
+}
+const BOTTLE_N = 6, BOTTLE_TOTAL = 15;
+function gameBottle(){
+  const pool = learnedWords(10).slice(0,14);
+  game = { score:0, life:6, done:0, pool, target:null, lastCorrect:0, rows:[[],[]], iv:null, iv2:null, sp:0 };
+  $('#scr-game').innerHTML = gameHeader('🍾 打瓶子', `<span class="chip" id="g-score">0</span><span class="chip" id="g-life">❤️6</span><span class="chip" id="g-done">0/${BOTTLE_TOTAL}</span>`)+
+   `<div class="pad" style="padding-top:4px">
+     <div id="shelf" style="background:linear-gradient(165deg,#FFB35A,#FF8A5C);border-radius:18px;padding:8px 0 2px;overflow:hidden">
+       ${[0,1].map(r=>`<div id="brow${r}" style="position:relative;height:106px;margin:4px 0;border-bottom:6px solid rgba(122,62,20,.4)"></div>`).join('')}
+     </div>
+     <div class="card center" style="margin-top:12px;padding:12px">
+       <span class="sub">打爆係呢個意思嘅英文瓶——</span>
+       <div id="g-target" style="font-size:26px;font-weight:900;color:var(--coral-dk)"></div>
+     </div>
+     <p class="sub center" style="margin-top:8px">撳錯瓶會扣機會,睇清楚先開槍!</p></div>`;
+  const W = ($('#brow0') && $('#brow0').clientWidth) || 320;
+  game.sp = Math.max(92, Math.ceil((W+140)/BOTTLE_N));
+  [0,1].forEach(r=>{
+    for(let i=0;i<BOTTLE_N;i++){
+      const b = { r, i, x: i*game.sp - 70, word:null, correct:false, broken:false, id:'bt'+r+'_'+i };
+      game.rows[r].push(b);
+      $('#brow'+r).appendChild(el(`<div id="${b.id}" onpointerdown="tapBottle(${r},${i})" style="position:absolute;bottom:0;width:80px;text-align:center;cursor:pointer;transition:filter .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none"></div>`));
+    }
+  });
+  pickBottleTarget();
+  game.rows.flat().forEach(b=>{ if(!b.word) assignBottleWord(b); });
+  drawBottles();
+  const speeds=[44,35];   // 中速(px/秒)
+  let last=Date.now();
+  game.iv2 = setInterval(()=>{
+    if(!game) return;
+    const now=Date.now(), dt=Math.min(0.2,(now-last)/1000); last=now;
+    const W2 = ($('#brow0') && $('#brow0').clientWidth) || W;
+    game.rows.forEach((row,r)=>row.forEach(b=>{
+      b.x += speeds[r]*dt;
+      if(b.x > W2+50){ b.x -= BOTTLE_N*game.sp; b.broken=false; b.correct=false; b.word=null; assignBottleWord(b); }
+    }));
+    drawBottles();
+  }, 50);
+}
+function correctOnScreen(){ return game.rows.flat().some(b=>b.correct && !b.broken); }
+function assignBottleWord(b){
+  // 同屏最多一個正確瓶;冇正確瓶且距上一個 ≥1 秒 → 呢個瓶做正確答案
+  if(game.target && !correctOnScreen() && Date.now()-game.lastCorrect>=1000){
+    b.word = game.target.en; b.correct = true; game.lastCorrect = Date.now();
+  } else {
+    const others = game.pool.filter(w=>!game.target || w.en!==game.target.en);
+    b.word = others[Math.floor(Math.random()*others.length)].en; b.correct = false;
+  }
+}
+function pickBottleTarget(){
+  const cand = game.pool.filter(w=>!game.target || w.en!==game.target.en);
+  game.target = cand[Math.floor(Math.random()*cand.length)];
+  const t=$('#g-target'); if(t) t.textContent = game.target.zh;
+  // 重貼標記:同新目標撞字嘅瓶只留一個做正確,其餘換走
+  let kept=false;
+  game.rows.flat().forEach(b=>{
+    b.correct=false;
+    if(b.word===game.target.en && !b.broken){
+      if(!kept){ b.correct=true; kept=true; game.lastCorrect=Date.now(); }
+      else { const others=game.pool.filter(w=>w.en!==game.target.en); b.word=others[Math.floor(Math.random()*others.length)].en; }
+    }
+  });
+}
+function drawBottles(){
+  game.rows.forEach((row,r)=>row.forEach((b,i)=>{
+    const d=document.getElementById(b.id); if(!d) return;
+    d.style.left = Math.round(b.x)+'px';
+    // 內容只喺「詞/碎裂狀態」變化時先重繪——每幀重繪會令點擊目標消失,手機點極冇反應
+    const key = (b.word||'')+'|'+(b.broken?1:0);
+    if(d.dataset.k !== key){
+      d.dataset.k = key;
+      d.innerHTML = bottleSVG(r*7+i, b.broken) +
+        `<div style="background:#FFF3D9;border:1px solid rgba(122,62,20,.3);border-radius:6px;font-size:12px;font-weight:800;padding:2px 2px;margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none">${esc(b.word||'')}</div>`;
+      const svg = d.querySelector('svg,div'); // 子元素唔攔截點擊
+    }
+  }));
+}
+function tapBottle(r,i){
+  if(!game || !game.rows[r]) return;
+  const b=game.rows[r][i]; if(!b || b.broken) return;
+  if(b.word===game.target.en){
+    sfxBreak(); haptic();
+    b.broken=true; b.correct=false; game.score+=10; game.done++;
+    $('#g-score').textContent=game.score; $('#g-done').textContent=game.done+'/'+BOTTLE_TOTAL;
+    if(game.done>=BOTTLE_TOTAL) return gameOver('🍾 神槍手!', game.score, `打爆晒 ${game.done} 個瓶,仲剩 ${game.life} 次機會`);
+    const bb=b;
+    setTimeout(()=>{ if(game && bb.broken){ bb.broken=false; bb.word=null; assignBottleWord(bb); } }, 900);
+    pickBottleTarget();
+    drawBottles();   // 即刻畫出 💥
+  } else {
+    game.life--; haptic();
+    const lc=$('#g-life'); if(lc) lc.textContent='❤️'+game.life;
+    const d=document.getElementById(b.id);
+    if(d){ d.style.filter='brightness(.55) sepia(1) hue-rotate(-45deg)'; setTimeout(()=>{ if(d) d.style.filter=''; },300); }
+    if(game.life<=0) return gameOver('機會用完喇 🎯', game.score, `打爆咗 ${game.done} 個瓶,下次睇真啲先開槍!`);
+  }
+}
+
+/* 遊戲3:詞彙對對碰(4×4 明牌,中英一對一對點走;限時) */
+const PAIRS_TIME = 60;   // 8 對 60 秒:小學高年級/初中反應節奏,夠緊張又搆得著
+function gamePairs(){
+  const ws = learnedWords(8).slice(0,8);
+  const tiles = shuffle(ws.flatMap((w,i)=>[{k:i, t:w.en, isEn:true},{k:i, t:w.zh, isEn:false}]));
+  game = { tiles, sel:-1, left:ws.length, t:PAIRS_TIME, score:0, iv:null, iv2:null };
+  $('#scr-game').innerHTML = gameHeader('🎴 詞彙對對碰', `<span class="chip" id="g-time">${PAIRS_TIME}s</span><span class="chip" id="g-score">0</span>`)+
    `<div class="pad" style="padding-top:4px">
      <div class="timerbar"><div id="g-timer" style="width:100%"></div></div>
-     <p class="sub" id="g-hint" style="margin-bottom:10px;font-weight:800;font-size:16px"></p>
-     <div class="slotrow" id="slots"></div>
-     <div class="tiles" id="tiles"></div>
-     <div style="height:14px"></div>
-     <div style="display:flex;gap:10px">
-       <button class="btn ghost" style="flex:1" onclick="speedBack()">⌫</button>
-       <button class="btn ghost" style="flex:1" onclick="speedNext(true)">跳過</button>
+     <p class="sub" style="margin:6px 0 10px">一個中文配一個英文,點兩下消一對(唔分先後)· 限時消晒全部!</p>
+     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+       ${tiles.map((c,i)=>`<button class="tile" id="pt${i}" onclick="tapPair(${i})"
+          style="min-height:64px;font-size:${c.isEn?14:13}px;font-weight:800;padding:4px 3px;word-break:break-word;line-height:1.3;background:${c.isEn?'#EAE4FF':'#E3F2FD'}">${esc(c.t)}</button>`).join('')}
      </div></div>`;
   game.iv = setInterval(()=>{
-    game.t -= 0.1;
-    const tb=$('#g-timer'); if(tb) tb.style.width = Math.max(0, 100*game.t/45)+'%';
-    if(game.t<=0) gameOver('時間到!⚡', game.score, `45 秒串啱 ${Math.floor(game.score/5)} 個詞`);
-  },100);
-  speedNext();
+    if(!game) return;
+    game.t--;
+    const tc=$('#g-time'); if(tc) tc.textContent=game.t+'s';
+    const tb=$('#g-timer'); if(tb) tb.style.width=Math.max(0,100*game.t/PAIRS_TIME)+'%';
+    if(game.t<=0) gameOver('時間到!🎴', game.score, `消走咗 ${8-game.left} 對,再嚟一次挑戰全清!`);
+  },1000);
 }
-function speedNext(skip){
-  if(!game) return;
-  const w = game.ws[game.qi % game.ws.length]; game.qi++;
-  game.w=w; game.word=w.en.replace(/[^A-Za-z]/g,'').toLowerCase(); game.cur='';
-  $('#g-hint').textContent = w.zh+' ('+w.pos+')';
-  const letters = shuffle(game.word.split('').concat(shuffle('aeionrst'.split('')).slice(0, Math.max(1, 8-game.word.length))));
-  $('#tiles').innerHTML = letters.map((c,i)=>`<button class="tile" id="gt${i}" onclick="speedTap(this,'${c}')">${c}</button>`).join('');
-  $('#slots').innerHTML = '<span class="sub">串出上面個詞</span>';
-  speak(w.en);
+function resetPairTile(i){
+  const e=document.getElementById('pt'+i); if(!e||!game) return;
+  const c=game.tiles[i];
+  e.style.outline='none'; e.style.background = c.isEn? '#EAE4FF' : '#E3F2FD';
 }
-function speedTap(btn,c){
+function tapPair(i){
   if(!game) return;
-  if(game.cur.length>=game.word.length) return;
-  game.cur+=c; btn.classList.add('used'); btn.dataset.sl=game.cur.length;
-  $('#slots').innerHTML = game.cur.split('').map(ch=>`<span class="slotchar">${ch}</span>`).join('');
-  if(game.cur.length===game.word.length){
-    if(game.cur===game.word){ game.score+=5; $('#g-score').textContent=game.score; setTimeout(()=>speedNext(),250); }
-    else { game.cur=''; document.querySelectorAll('#tiles .tile').forEach(t=>{t.classList.remove('used');delete t.dataset.sl;});
-      const s=$('#slots'); s.innerHTML='<span class="sub" style="color:var(--bad)">再試一次!</span>'; }
+  const d=document.getElementById('pt'+i);
+  if(!d || d.style.visibility==='hidden') return;
+  if(game.sel===-1){ game.sel=i; d.style.outline='3px solid #FFB020'; d.style.background='#FFE2A8'; return; }
+  if(game.sel===i){ game.sel=-1; resetPairTile(i); return; }
+  const j=game.sel, a=game.tiles[i], b=game.tiles[j];
+  game.sel=-1;
+  if(a.k===b.k && a.isEn!==b.isEn){
+    sfxStar(); haptic();                        // 配對成功:星星閃聲
+    game.score+=10; $('#g-score').textContent=game.score;
+    [i,j].forEach(x=>{ const e=document.getElementById('pt'+x);
+      if(e){ e.style.transition='all .25s'; e.style.transform='scale(.15) rotate(20deg)'; e.style.opacity='0';
+             setTimeout(()=>{ if(e) e.style.visibility='hidden'; },260); } });
+    game.left--;
+    if(game.left<=0){
+      const bonus=game.t*2; game.score+=bonus;
+      gameOver('全部消晒!🌟', game.score, `淨返 ${game.t} 秒全清,時間獎勵 +${bonus}`);
+    }
+  } else {
+    // 錯配:冇聲,只閃一下紅
+    [i,j].forEach(x=>{ const e=document.getElementById('pt'+x);
+      if(e && e.style.visibility!=='hidden'){ e.style.background='#FFD9D4'; setTimeout(()=>resetPairTile(x),280); } });
   }
-}
-function speedBack(){
-  if(!game||!game.cur) return;
-  const n=game.cur.length; game.cur=game.cur.slice(0,-1);
-  const t=document.querySelector(`#tiles .tile.used[data-sl="${n}"]`);
-  if(t){ t.classList.remove('used'); delete t.dataset.sl; }
-  $('#slots').innerHTML = game.cur? game.cur.split('').map(ch=>`<span class="slotchar">${ch}</span>`).join(''):'<span class="sub">串出上面個詞</span>';
 }
 
 /* ---------- 字庫 / 我 ---------- */
