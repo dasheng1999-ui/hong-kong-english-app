@@ -247,7 +247,7 @@ function dbLoad(){ try{ return JSON.parse(storage.getItem(DB_KEY))||{users:{},la
 function dbSave(db){ try{ storage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){} }
 function pwHash(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return 'h'+h.toString(36); } // 原型級;正式版需伺服器端認證
 
-const APP_VER = 'v3.2.0';
+const APP_VER = 'v3.3.0';
 const store = { user:null, nick:'', form:null, unitKey:null, prog:{}, gems:0, streak:1, sound:true, lang:'cmn',   // 全 App 固定簡體中文
   doneToday:0, curGroup:{}, minutes:{}, history:[], hats:['teal'], hat:'teal', lastDay:'', freePlay:'',
   wrongBank:{}, sx:{}, miss:{}, gear:{owned:[],head:null,face:null,neck:null}, gameUnits:[], lastBackup:'', sent:{} };
@@ -361,7 +361,7 @@ const CMN_PHRASES = [
  ['大約 3–5 分鐘,跟住波波行就得','大約 3–5 分鐘,跟著波波走就行'],
  ['想加操都得!','想加練也可以!'],
 ];
-const T2S_PAIRS = "丟丢並并乾干亂乱佈布佔占併并來来係系倉仓個个們们倖幸倫伦側侧偵侦偽伪傑杰傘伞備备傢家傳传傷伤傾倾僅仅僥侥僱雇價价儀仪儉俭儕侪儘尽優优儲储兇凶兌兑兒儿內内兩两冊册別别刪删則则剛刚剝剥創创劃划劇剧劍剑劑剂勁劲動动務务勝胜勞劳勢势勵励勸劝區区協协卻却厭厌厲厉參参叢丛員员問问啟启喪丧單单嘆叹嘗尝嘯啸噓嘘噥哝噴喷嚇吓嚥咽嚴严囉啰國国圍围園园圖图團团執执堅坚報报場场塊块塵尘壇坛壓压壞坏壯壮壽寿夠够夥伙奧奥奪夺奮奋妝妆娛娱媽妈嬰婴學学實实寧宁審审寫写寬宽寵宠寶宝將将專专尋寻對对導导尷尴屆届屢屡層层屬属島岛崗岗嶼屿師师帳帐帶带幣币幫帮幹干幾几庫库廂厢廄厩廈厦廚厨廠厂廢废廣广廳厅張张強强彈弹彎弯彙汇後后徑径從从復复徵征徹彻恆恒悅悦悶闷惡恶惱恼愛爱慄栗態态慣惯慮虑慶庆慾欲憂忧憐怜憑凭憶忆應应懲惩懶懒懷怀懸悬懼惧戰战戲戏戶户拋抛挾挟捨舍捱挨捲卷掃扫掙挣掛挂採采揀拣揚扬換换揮挥揹背損损搖摇搵揾搶抢摯挚摻掺撫抚撳揿撿捡擁拥擇择擊击擔担據据擠挤擬拟擴扩擺摆擾扰攜携攝摄攪搅敍叙敗败敘叙敵敌數数斬斩斷断於于時时晉晋暢畅暫暂暱昵曉晓書书會会東东條条棄弃棲栖業业極极構构樁桩樂乐樓楼標标樣样樸朴樹树橋桥機机橫横檔档檢检櫃柜櫥橱欄栏權权欽钦歎叹歡欢歷历歸归殺杀殼壳毀毁氣气決决沒没況况洶汹涼凉淚泪淪沦淺浅減减測测渾浑湊凑湯汤準准溝沟溫温滄沧滅灭滯滞滲渗滿满漸渐潑泼潔洁潤润濁浊濃浓濕湿濟济濫滥濾滤瀉泻瀏浏瀕濒瀰弥灘滩災灾為为烏乌無无煉炼煙烟煩烦熱热燈灯燒烧營营爐炉爭争爾尔犧牺狀状狹狭猶犹獅狮獎奖獨独獲获獵猎獸兽獻献現现環环產产畢毕畫画異异當当疇畴瘋疯瘓痪瘡疮療疗癒愈癮瘾癱瘫發发皺皱盜盗盡尽監监盤盘眾众瞇眯確确碼码磚砖礎础礙碍禍祸禮礼禱祷種种稱称積积穩稳穫获窮穷竅窍竊窃競竞筆笔箇个節节範范築筑篩筛簡简簽签籌筹籠笼籤签籬篱籲吁粵粤糧粮糾纠紀纪約约紓纾純纯紙纸級级細细紹绍絀绌終终組组結结絕绝絡络給给統统絲丝綁绑經经綜综綠绿維维網网綴缀緊紧緒绪線线緣缘編编緩缓練练緻致縛缚縮缩縱纵總总織织繚缭繞绕繩绳繪绘繫系繼继續续纖纤罰罚罷罢義义習习聞闻聯联聰聪聲声職职聽听聾聋脅胁脈脉脫脱脹胀腦脑腳脚膚肤膠胶膩腻臟脏臨临與与興兴舉举舊旧艱艰艷艳華华萬万蓋盖蔔卜薦荐藉借藝艺藥药蘿萝處处虛虚號号虧亏術术衛卫衝冲裏里補补裝装裡里製制複复襪袜襯衬見见規规視视親亲覺觉覽览觀观觸触訂订計计訊讯討讨訓训記记訝讶訣诀訪访設设許许訴诉診诊註注詐诈評评詞词詢询試试詮诠話话該该詳详誇夸誌志認认誘诱語语誠诚誤误誦诵說说誰谁課课調调談谈請请論论諷讽諺谚諾诺謀谋謂谓謊谎謎谜講讲謝谢謠谣證证識识譜谱譯译議议護护譽誉讀读變变讓让讚赞豎竖豐丰貓猫貝贝負负財财貢贡貧贫貨货販贩貪贪貫贯責责貴贵貶贬買买貸贷費费貼贴貿贸資资賊贼賓宾賜赐賞赏賣卖賦赋質质賴赖賺赚購购賽赛贅赘贈赠贊赞贖赎趕赶趨趋跡迹踐践蹟迹蹤踪躍跃躡蹑車车軌轨軟软軸轴較较載载輔辅輕轻輩辈輪轮輯辑輸输轉转轟轰辦办辭辞農农迴回這这連连週周進进遊游運运過过達达違违遙遥遜逊遞递遠远適适遲迟遷迁選选遺遗邁迈還还邊边邏逻郵邮鄰邻醫医醬酱釁衅釋释釘钉針针釣钓鉅巨銀银銜衔銷销鋪铺錄录錢钱錯错鍋锅鍛锻鍵键鎖锁鏡镜鐘钟鐵铁鑑鉴長长門门閃闪閉闭開开閒闲間间閣阁閨闺閱阅闊阔闖闯關关闡阐陣阵陰阴陳陈陽阳隊队階阶際际隨随險险隱隐隻只雖虽雙双雜杂離离難难雲云電电霧雾靈灵靜静韌韧韻韵響响頁页頂顶項项順顺須须預预頒颁頓顿頗颇領领頭头頻频顆颗題题額额顎颚願愿顛颠類类顧顾顯显風风颱台颶飓飛飞飢饥飪饪飯饭飲饮飽饱飾饰養养餓饿餘余餚肴餡馅館馆餵喂饋馈饑饥馬马馴驯駁驳駭骇騙骗騷骚驗验驚惊驟骤髒脏髮发鬆松鬥斗鬧闹鬱郁魚鱼鮮鲜鳥鸟鳴鸣鴉鸦鴨鸭鹹咸麗丽麵面麼么點点黨党齊齐齒齿龍龙龕龛紅红納纳體体朧胧";
+const T2S_PAIRS = "丟丢並并乾干亂乱佈布佔占併并來来係系倉仓個个們们倖幸倫伦側侧偵侦偽伪傑杰傘伞備备傢家傳传傷伤傾倾僅仅僥侥僱雇價价儀仪儉俭儕侪儘尽優优儲储兇凶兌兑兒儿內内兩两冊册別别刪删則则剛刚剝剥創创劃划劇剧劍剑劑剂勁劲動动務务勝胜勞劳勢势勵励勸劝區区協协卻却厭厌厲厉參参叢丛員员問问啟启喪丧單单嘆叹嘗尝嘯啸噓嘘噥哝噴喷嚇吓嚥咽嚴严囉啰國国圍围園园圖图團团執执堅坚報报場场塊块塵尘壇坛壓压壞坏壯壮壽寿夠够夥伙奧奥奪夺奮奋妝妆娛娱媽妈嬰婴學学實实寧宁審审寫写寬宽寵宠寶宝將将專专尋寻對对導导尷尴屆届屢屡層层屬属島岛崗岗嶼屿師师帳帐帶带幣币幫帮幹干幾几庫库廂厢廄厩廈厦廚厨廠厂廢废廣广廳厅張张強强彈弹彎弯彙汇後后徑径從从復复徵征徹彻恆恒悅悦悶闷惡恶惱恼愛爱慄栗態态慣惯慮虑慶庆慾欲憂忧憐怜憑凭憶忆應应懲惩懶懒懷怀懸悬懼惧戰战戲戏戶户拋抛挾挟捨舍捱挨捲卷掃扫掙挣掛挂採采揀拣揚扬換换揮挥揹背損损搖摇搵揾搶抢摯挚摻掺撫抚撳揿撿捡擁拥擇择擊击擔担據据擠挤擬拟擴扩擺摆擾扰攜携攝摄攪搅敍叙敗败敘叙敵敌數数斬斩斷断於于時时晉晋暢畅暫暂暱昵曉晓書书會会東东條条棄弃棲栖業业極极構构樁桩樂乐樓楼標标樣样樸朴樹树橋桥機机橫横檔档檢检櫃柜櫥橱欄栏權权欽钦歎叹歡欢歷历歸归殺杀殼壳毀毁氣气決决沒没況况洶汹涼凉淚泪淪沦淺浅減减測测渾浑湊凑湯汤準准溝沟溫温滄沧滅灭滯滞滲渗滿满漸渐潑泼潔洁潤润濁浊濃浓濕湿濟济濫滥濾滤瀉泻瀏浏瀕濒瀰弥灘滩災灾為为烏乌無无煉炼煙烟煩烦熱热燈灯燒烧營营爐炉爭争爾尔犧牺狀状狹狭猶犹獅狮獎奖獨独獲获獵猎獸兽獻献現现環环產产畢毕畫画異异當当疇畴瘋疯瘓痪瘡疮療疗癒愈癮瘾癱瘫發发皺皱盜盗盡尽監监盤盘眾众瞇眯確确碼码磚砖礎础礙碍禍祸禮礼禱祷種种稱称積积穩稳穫获窮穷竅窍竊窃競竞筆笔箇个節节範范築筑篩筛簡简簽签籌筹籠笼籤签籬篱籲吁粵粤糧粮糾纠紀纪約约紓纾純纯紙纸級级細细紹绍絀绌終终組组結结絕绝絡络給给統统絲丝綁绑經经綜综綠绿維维網网綴缀緊紧緒绪線线緣缘編编緩缓練练緻致縛缚縮缩縱纵總总織织繚缭繞绕繩绳繪绘繫系繼继續续纖纤罰罚罷罢義义習习聞闻聯联聰聪聲声職职聽听聾聋脅胁脈脉脫脱脹胀腦脑腳脚膚肤膠胶膩腻臟脏臨临與与興兴舉举舊旧艱艰艷艳華华萬万蓋盖蔔卜薦荐藉借藝艺藥药蘿萝處处虛虚號号虧亏術术衛卫衝冲裏里補补裝装裡里製制複复襪袜襯衬見见規规視视親亲覺觉覽览觀观觸触訂订計计訊讯討讨訓训記记訝讶訣诀訪访設设許许訴诉診诊註注詐诈評评詞词詢询試试詮诠話话該该詳详誇夸誌志認认誘诱語语誠诚誤误誦诵說说誰谁課课調调談谈請请論论諷讽諺谚諾诺謀谋謂谓謊谎謎谜講讲謝谢謠谣證证識识譜谱譯译議议護护譽誉讀读變变讓让讚赞豎竖豐丰貓猫貝贝負负財财貢贡貧贫貨货販贩貪贪貫贯責责貴贵貶贬買买貸贷費费貼贴貿贸資资賊贼賓宾賜赐賞赏賣卖賦赋質质賴赖賺赚購购賽赛贅赘贈赠贊赞贖赎趕赶趨趋跡迹踐践蹟迹蹤踪躍跃躡蹑車车軌轨軟软軸轴較较載载輔辅輕轻輩辈輪轮輯辑輸输轉转轟轰辦办辭辞農农迴回這这連连週周進进遊游運运過过達达違违遙遥遜逊遞递遠远適适遲迟遷迁選选遺遗邁迈還还邊边邏逻郵邮鄰邻醫医醬酱釁衅釋释釘钉針针釣钓鉅巨銀银銜衔銷销鋪铺錄录錢钱錯错鍋锅鍛锻鍵键鎖锁鏡镜鐘钟鐵铁鑑鉴長长門门閃闪閉闭開开閒闲間间閣阁閨闺閱阅闊阔闖闯關关闡阐陣阵陰阴陳陈陽阳隊队階阶際际隨随險险隱隐隻只雖虽雙双雜杂離离難难雲云電电霧雾靈灵靜静韌韧韻韵響响頁页頂顶項项順顺須须預预頒颁頓顿頗颇領领頭头頻频顆颗題题額额顎颚願愿顛颠類类顧顾顯显風风颱台颶飓飛飞飢饥飪饪飯饭飲饮飽饱飾饰養养餓饿餘余餚肴餡馅館馆餵喂饋馈饑饥馬马馴驯駁驳駭骇騙骗騷骚驗验驚惊驟骤髒脏髮发鬆松鬥斗鬧闹鬱郁魚鱼鮮鲜鳥鸟鳴鸣鴉鸦鴨鸭鹹咸麗丽麵面麼么點点黨党齊齐齒齿龍龙龕龛紅红納纳體体朧胧淨净醜丑顏颜膽胆鞏巩骯肮甕瓮齣出儈侩剮剐嗆呛嗇啬嘔呕墊垫夾夹奐奂嬌娇寢寝屜屉廟庙彆别悵怅撈捞撓挠暈晕曖暧歿殁毆殴熾炽獰狞盞盏睞睐稈秆窩窝竄窜箋笺聳耸聶聂臍脐艙舱薈荟蘊蕴觴觞訐讦諧谐賅赅贍赡蹌跄軾轼轆辘醞酝鉚铆錮锢鎬镐鑿凿閂闩靨靥韁缰颯飒饗飨馱驮鬢鬓鱉鳖鴕鸵鷗鸥齜龇慍愠憫悯戀恋摀捂撐撑擰拧攢攒曬晒檯台櫓橹洩泄潛潜濺溅燦灿獄狱瑩莹疊叠皰疱磯矶禿秃稅税窯窑竪竖綢绸緯纬縴纤繽缤纜缆罈坛翹翘耮耢聹聍腸肠膿脓舖铺薑姜藹蔼蟬蝉蠟蜡衆众褸褛謅诌譴谴賬账贓赃蹣蹒躥蹿輟辍轎轿鄉乡釀酿鋅锌錠锭鍾钟鎳镍鏟铲鐐镣鑼锣陝陕隕陨靂雳韃鞑饃馍駝驼騁骋驕骄髏髅鮁鲅鯽鲫鰭鳍鱔鳝鴻鸿鵬鹏鷺鹭麯曲黌黉齦龈";
 const T2S = (()=>{ const m={}; for(let i=0;i<T2S_PAIRS.length;i+=2) m[T2S_PAIRS[i]]=T2S_PAIRS[i+1]; return m; })();
 function toSimp(s){ let out=''; for(const ch of s) out += (T2S[ch]||ch); return out; }
 const CMN_CHARS = [['嘅','的'],['喺','在'],['唔','不'],['嚟','來'],['咗','了'],['啲','些'],['嗰','那'],['俾','給'],['睇','看'],['揀','選'],['搵','找'],['冇','沒有'],['佢','它'],['咩','什麼'],['呢個','這個'],['呢度','這裡'],['而家','現在'],['聽日','明天'],['今日','今天'],['係','是'],['咁','這樣']];
@@ -470,8 +470,8 @@ function renderLocked(reason){
   show('scr-login');
 }
 
-const GROUP_MAX = 20, SESSION_CAP = 22, NEED = {1:2, 2:2, 3:1};   // 每關 15-20 詞(均衡分組)
-const TIER_NAME = {1:'識義層', 2:'應用層', 3:'閱讀層'};
+const GROUP_MAX = 20, SINGLE_GROUP = 10, SESSION_CAP = 22, NEED = {1:2, 2:2, 3:1};   // 每關 15-20 詞;單篇課文單元(P版小學)每關約 10 詞
+const TIER_NAME = {1:'詞義藏寶洞', 2:'句子魔法屋', 3:'短文冒險島'};
 const TIER_ICON = {1:'💡', 2:'✏️', 3:'📖'};
 
 const $ = s => document.querySelector(s);
@@ -555,6 +555,34 @@ function speak(t, onstat, attempt){
     else go();
   }catch(e){ if(onstat) onstat('❌ '+e.message); }
 }
+/* 真人程度評分(越細越似真人):Natural/Neural > Enhanced/Premium/Siri > Google > 本機 > 其他;
+   Compact/eSpeak 呢啲機械音重罰 */
+function humanScore(v){
+  const n=(v.name||'').toLowerCase();
+  let s;
+  if(/natural|neural/.test(n)) s=0;
+  else if(/enhanced|premium|siri/.test(n)) s=1;
+  else if(/google/.test(n)) s=2;
+  else if(v.localService) s=3;
+  else s=4;
+  if(/en[-_]gb/i.test(v.lang)) s+=0; else if(/en[-_]us/i.test(v.lang)) s+=0.3; else s+=0.6;
+  if(/compact|espeak|robo|reduced/.test(n)) s+=10;
+  return s;
+}
+/* 揀最似真人嘅 2 把:盡量一女一男 */
+function pickHuman2(){
+  let vs=[]; try{ vs=speechSynthesis.getVoices(); }catch(e){}
+  let en = vs.filter(v=>/^en/i.test(v.lang) && !NOVELTY.test(v.name));
+  if(!en.length) en = vs.filter(v=>!NOVELTY.test(v.name));
+  en = en.slice().sort((a,b)=>humanScore(a)-humanScore(b));
+  const picks=[];
+  const fem = en.find(v=>genderAdj(v)===0);
+  const male = en.find(v=>genderAdj(v)===2);
+  if(fem) picks.push(fem);
+  if(male && male!==fem) picks.push(male);
+  for(const v of en){ if(picks.length>=2) break; if(picks.indexOf(v)<0) picks.push(v); }
+  return {picks:picks.slice(0,2), all:vs};
+}
 function voicePicker(){
   unlockAudio(); pickVoice();
   let vs=[]; try{ vs=speechSynthesis.getVoices(); }catch(e){}
@@ -564,14 +592,30 @@ function voicePicker(){
   if(!list.length){ alertTip('未偵測到任何語音,請先安裝系統語音包'); return; }
   const cur = storage.getItem('bobo_voice');
   const isDef = cur==='__default__';
+  const {picks} = pickHuman2();
+  const humanLabel = (v,i)=>{
+    const g = genderAdj(v)===0?'👩 真人音·女':genderAdj(v)===2?'👨 真人音·男':'🎧 真人音';
+    return `<div class="hrow" style="gap:6px;border-color:var(--coral,#F6A6A0);background:#FFF3F1">
+      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g}</div>
+        <div class="sub" style="font-size:10.5px">${esc(v.name)}${v.name===cur?' · ✅ 使用中':''}</div></div>
+      <button class="btn small ghost" onclick="previewVoice(${vs.indexOf(v)})">試聽</button>
+      <button class="btn small" onclick="chooseVoice(${vs.indexOf(v)})">使用</button>
+    </div>`;
+  };
+  const recBlock = picks.length
+    ? `<p style="font-weight:800;font-size:13px;margin:4px 0 6px">🌟 真人推薦(挑咗最自然嘅 ${picks.length} 把)</p>
+       ${picks.map((v,i)=>humanLabel(v,i)).join('')}`
+    : `<p class="sub" style="margin:4px 0 8px">呢部手機暫時搵唔到更自然嘅語音,可用下面嘅或裝多個英文語音包。</p>`;
   $('#modalbody').innerHTML = `<h2 style="margin-bottom:6px">揀一把你鍾意嘅聲音</h2>
     <p class="sub" style="margin-bottom:12px">點「試聽」聽下,啱心水就點「使用」;設定會永久保存</p>
-    <div class="hrow" style="gap:6px;border-color:var(--teal);background:var(--teal-lt)">
+    ${recBlock}
+    <div class="hrow" style="gap:6px;border-color:var(--teal);background:var(--teal-lt);margin-top:8px">
       <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:12.5px">🎀 原版預設聲音(跟系統)</div>
         <div class="sub" style="font-size:10.5px">最初版本用嘅就係呢把${isDef?' · ✅ 使用中':''}</div></div>
       <button class="btn small ghost" onclick="previewDefault()">試聽</button>
       <button class="btn small" onclick="chooseDefault()">使用</button>
-    </div>` + `
+    </div>
+    <p class="sub" style="margin:14px 0 6px;font-weight:700">── 其他全部聲音(試用期暫留,你確認後我再刪) ──</p>` + `
     ${list.map((v,i)=>`<div class="hrow" style="gap:6px">
       <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${genderAdj(v)===0?'👧':genderAdj(v)===2?'👦':'🔈'} ${esc(v.name)}</div>
         <div class="sub" style="font-size:10.5px">${esc(v.lang)} · ${v.localService?'本機離線':'需連線'}${v.name===cur?' · ✅ 使用中':''}</div></div>
@@ -679,7 +723,14 @@ function phraseTierProgress(u,t){
   return {n, total, pct: total? Math.round(100*n/total):0};
 }
 function phraseGateDone(u){ return [1,2].every(t=>phraseTierProgress(u,t).n===u.phrases.length); }
-function tierPassed(u,w,t){ const p=pget(wid(u,w)); return t===1? p.m>=NEED[1] : t===2? p.u>=NEED[2] : p.r>=NEED[3]; }
+/* ---- 語法單選題(P版):某些詞配了語法題,第二層做它的語法題,全做對才過 ---- */
+function gqList(w){ return (w && w.gq && w.gq.length) ? w.gq : null; }
+function t2pass(u,w){
+  const gl=gqList(w), p=pget(wid(u,w));
+  if(gl){ const ok=p.gqok||{}; return gl.every((_,i)=>ok[i]); }   // 有語法題:每道都做對
+  return p.u>=NEED[2];                                            // 冇語法題:照舊填空/拼寫
+}
+function tierPassed(u,w,t){ const p=pget(wid(u,w)); return t===1? p.m>=NEED[1] : t===2? t2pass(u,w) : p.r>=NEED[3]; }
 function wordStars(u,w){ return (tierPassed(u,w,1)?1:0)+(tierPassed(u,w,2)?1:0)+(tierPassed(u,w,3)?1:0); }
 
 function groups(u){
@@ -690,6 +741,15 @@ function groups(u){
     ws.forEach(w=>{ (byTx[w.src]=byTx[w.src]||[]).push(w); });
     const txs=Object.keys(byTx).sort();
     const g=[];
+    if(txs.length===1){
+      // 單篇課文單元(P版小學):按 ~SINGLE_GROUP 詞均衡分關,全部帶同一個 tx(閱讀層照樣用短文)
+      const arr=byTx[txs[0]], tx=txs[0];
+      const n=Math.max(1, Math.ceil(arr.length/SINGLE_GROUP));
+      const per=Math.ceil(arr.length/n);
+      for(let i=0;i<arr.length;i+=per){ const c=arr.slice(i,i+per); c.tx=tx; g.push(c); }
+      return g;
+    }
+    // 多篇課文(A版):每篇兩關
     txs.forEach(tx=>{
       const arr=byTx[tx];
       const half=Math.ceil(arr.length/2);
@@ -714,7 +774,10 @@ function unitAllDone(u){
 function tierProgress(u,gws,t){
   const n=gws.filter(w=>tierPassed(u,w,t)).length;
   let frac=0;
-  gws.forEach(w=>{ const p=pget(wid(u,w)); const c= t===1?p.m : t===2?p.u : p.r; frac+=Math.min(c,NEED[t])/NEED[t]; });
+  gws.forEach(w=>{ const p=pget(wid(u,w));
+    const gl = t===2 ? gqList(w) : null;
+    if(gl){ const ok=p.gqok||{}; frac += gl.filter((_,i)=>ok[i]).length / gl.length; return; }
+    const c= t===1?p.m : t===2?p.u : p.r; frac+=Math.min(c,NEED[t])/NEED[t]; });
   return {n, total:gws.length, pct:Math.round(100*frac/gws.length)};
 }
 function groupDone(u,gws){ return [1,2,3].every(t=>tierProgress(u,gws,t).n===gws.length); }
@@ -1100,7 +1163,7 @@ function renderHome(){
             <div class="sub" style="font-size:11px">${u.phrases.length} 短語</div></div>`;
         })():''}
       </div>
-      <p class="sub center" style="margin-top:8px">單詞關:識義 → 應用 → 課文閱讀${pgate?' · 短語大關:識義 → 用法':''} · ${store.doneToday>0?'今日已完成 '+store.doneToday+' 輪':''}</p>
+      <p class="sub center" style="margin-top:8px">單詞關:詞義藏寶洞 → 句子魔法屋 → 短文冒險島${pgate?' · 短語大關:識義 → 用法':''} · ${store.doneToday>0?'今日已完成 '+store.doneToday+' 輪':''}</p>
     </div>`;
 }
 // 點關卡 → 揀層:未過上一層鎖住;已完成嘅層可以隨時重溫
@@ -1418,6 +1481,10 @@ function startWrongSession(){
   const entries = Object.values(store.wrongBank||{}).map(e=>{
     const uu = DATA.units.find(x=>x.key===e.k); if(!uu||!unitInScope(uu)) return null;
     const w = uu.words.find(x=>x.en===e.en); if(!w) return null;
+    if(wrongType(e.t)==='gmcq'){   // 語法題錯題:重出該詞的第一道語法題;冇就退回詞義題
+      if(w.gq && w.gq.length) return {t:'gmcq', w, gi:0, q:w.gq[0], uk:uu.key};
+      return {t:'mcq_zh', w, uk:uu.key};
+    }
     return {t:wrongType(e.t), w, uk:uu.key};
   }).filter(Boolean);
   if(!entries.length){ alertTip('錯題本係空嘅,好嘢!繼續闖關啦'); return; }
@@ -1456,6 +1523,12 @@ function startSession(forceGi, forceTier){
     });
   } else if(tier===2){
     target.forEach((w,wi)=>{
+      const gl = gqList(w);
+      if(gl){   // 配咗語法題嘅詞:第二層做佢嘅語法單選題(未做對嗰幾道),全做對先過
+        const p = pget(wid(u,w)); const ok = p.gqok||{};
+        gl.forEach((q,gi)=>{ if(!ok[gi]) steps.push({t:'gmcq', w, gi, q}); });
+        return;
+      }
       const p = pget(wid(u,w));
       if(p.u===0){ steps.push({t:'cloze',w}); return; }
       // 第二次起輪換題型:串字砌/揀串法/聽音辨串/搭配(多字詞組只做填空/搭配,唔串字)
@@ -1621,6 +1694,14 @@ function renderStep(){
         <p class="sub" style="margin-top:6px">${esc(w.zh)}</p></div>`,
       shuffle([word,...wrong]), word, w);
     setTimeout(()=>speak(w.en), 350);
+  } else if(st.t==='gmcq'){
+    const w=st.w, q=st.q;
+    // 語法單選題:題幹作題目,四個選項自動打亂(正解按內容判分,不看位置)
+    const opts = shuffle((q.opts||[]).filter(o=>o!==''));
+    body = qBody('揀出正確答案',
+      `<div class="sent" style="margin-bottom:14px">${esc(q.q)}</div>
+       <p class="sub" style="margin-bottom:8px">(考「${esc(w.en)}」的用法)</p>`,
+      opts, q.a, w);
   } else if(st.t==='infer'){
     const w=st.w;
     body = qBody(`從句子推斷 <b style="color:var(--coral)">${esc(w.en)}</b> 嘅意思`,
@@ -1917,6 +1998,20 @@ function closeBanner(ok){
   $('#banner').classList.remove('show');
   const st=sess.steps[sess.i];
   const u = st.uk? DATA.units.find(x=>x.key===st.uk) : curUnit();
+  if(st.t==='gmcq'){                                         // 語法單選題:記錄該題做對,答錯進錯題本並重出
+    const pr=pget(wid(u,st.w));
+    if(ok){
+      pr.gqok=pr.gqok||{}; pr.gqok[st.gi]=1;
+      if(sess.mode==='wrong') clearWrong(u,st.w);
+      else if(store.wrongBank && store.wrongBank[wid(u,st.w)] && store.wrongBank[wid(u,st.w)].t==='gmcq') clearWrong(u,st.w);
+      sess.right++; sess.gems+=2;
+    } else {
+      pr.wrong=(pr.wrong||0)+1; sess.wrong++;
+      recordWrong(u, st.w, 'gmcq');
+      if(sess.mode!=='wrong' && sess.steps.length<SESSION_CAP+3) sess.steps.push({t:'gmcq', w:st.w, gi:st.gi, q:st.q});
+    }
+    sess.i++; renderStep(); return;
+  }
   if(st.w){
     const pr=pget(wid(u,st.w));
     if(ok){
@@ -2718,7 +2813,7 @@ function slabXray(){
     <div class="card" style="line-height:3;font-size:15px;margin-bottom:12px">
       ${s.chunks.map(c=>{
         const rm=ROLE_META[c.r]||['?','#888'];
-        return `<span style="background:${rm[1]}1A;border-bottom:3px solid ${rm[1]};border-radius:6px;padding:2px 6px;font-weight:800;white-space:nowrap">${esc(c.t)}<sub style="font-size:9px;color:${rm[1]}"> ${rm[0]}${c.r==='D'?'→'+esc(c.g||''):''}${c.r==='A'?'·'+esc(c.g||''):''}</sub></span>${c.tail?esc(c.tail):''} `;
+        return `<span style="background:${rm[1]}1A;border-bottom:3px solid ${rm[1]};border-radius:6px;padding:2px 6px;font-weight:800;white-space:normal;overflow-wrap:break-word;word-break:break-word;display:inline">${esc(c.t)}<sub style="font-size:9px;color:${rm[1]}"> ${rm[0]}${c.r==='D'?'→'+esc(c.g||''):''}${c.r==='A'?'·'+esc(c.g||''):''}</sub></span>${c.tail?esc(c.tail):''} `;
       }).join('')}
     </div>
     <p style="margin:6px 0;font-size:14px"><b>中文:</b>${esc(s.zh)}</p>
